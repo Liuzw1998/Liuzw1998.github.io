@@ -74,8 +74,9 @@ struct FixedSortKeyPayload {
 
 新版本将之前的多线程2路归并推广到k路 （之前产生更长的 sorted runs 对k路归并更友好）。
 如下图所示，如果有多个有序块，我们要输出合并后的前$\ell$个数，同样可以用二分搜索找出第$i$个块的前$q_i$个属于输出的前$\ell$个。这一部分可以分给一个线程来合并，然后继续计算输出的下$\ell$个数，分别对应每个块的哪一段，交给另一个线程来合并。以此类推，我们可以把合并$k$个有序块的任务多线程并行化。
-
-<div style="text-align:center;"> <img src="k_way_merge.svg" alt="k-way merge 示意图" style="display:block;margin:0 auto;max-width:40%;height:auto;" /> </div>
+<div style="text-align:center;">
+    <img src="k_way_merge.svg" alt="k-way merge 示意图" style="display:block;margin:0 auto;max-width:50%;height:auto;" />
+</div>
 
 
 #### 实验结果
