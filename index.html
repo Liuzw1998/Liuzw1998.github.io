@@ -38,8 +38,8 @@
 <ul>
 <li>DuckDB 使用固定大小的排序键。在过去版本中，其大小在<strong>执行时</strong>才会被计算。当前版本使用了<strong>新的排序键存储结构</strong>，在<strong>编译时</strong>就可以知道其大小。</li>
 <li>使用了标准的256KiB block size（旧版本使用了不定大小的 block size）。通过实现 <code>std::iterator</code> ，允许有序块 (sorted runs) <strong>使用非连续内存</strong>（多个 pages）。这样不仅可以产生<strong>更大的有序块</strong>（用于提高后续步骤的效率），还可以直接调用 C++ 模板库的排序算法。</li>
-<li>有序块的排序<strong>组合使用3种排序算法</strong>（之前仅用基数排序）：先用<a href="https://github.com/Morwenn/vergesort">Vergesort</a> 处理（几乎）有序的数据，再用 <a href="https://github.com/skarupke/ska_sort">Ska Sort</a> （基数排序的变种）将数据按排序键最高 64 位排序/划分，最后再使用快速排序 <a href="https://github.com/orlp/pdqsort">Pattern-defeating quicksort</a>。</li>
-<li>有序块的合并从之前的 <strong>2-way merge</strong> 改为使用 <strong>k-way merge</strong>；将之前的 <strong>2-way merge path</strong> 推广到 <strong>k-way merge path</strong>。在之前的版本中，算法会完全计算出整个排序后的序列；新算法会逐渐计算排序结果的前缀并可以随时终止，这有利于<code>ORDER BY ... LIMIT ...</code>类型的查询。</li>
+<li>有序块的排序<strong>组合使用3种排序算法</strong>（之前仅用基数排序）：先用 <a href="https://github.com/Morwenn/vergesort">Vergesort</a> 处理（几乎）有序的数据，再用 <a href="https://github.com/skarupke/ska_sort">Ska Sort</a> （基数排序的变种）将数据按排序键最高 64 位排序/划分，最后再使用快速排序 <a href="https://github.com/orlp/pdqsort">Pattern-defeating quicksort</a>。</li>
+<li>有序块的合并从之前的 <strong>2-way merge</strong> 改为使用 <strong>k-way merge</strong> （k是可配置参数）；将之前的 <strong>2-way merge path</strong> 推广到 <strong>k-way merge path</strong>。在之前的版本中，算法会完全计算出整个排序后的序列；新算法会逐渐计算排序结果的前缀并可以随时终止，这有利于<code>ORDER BY ... LIMIT ...</code>类型的查询。</li>
 </ul>
 <h4 id="新的内存页布局-page-layout">新的内存页布局 (page layout) </h4>
 <p>DuckDB的内存页布局中，每一行可能会存储指向不定长数据（比如字符串）的内存指针。但是当指针指向的数据被写入磁盘后，指向的地址不再有意义，即使数据可能会被重新载入内存，但在内存中的地址也会发生变化。</p>
@@ -71,7 +71,7 @@
 <p>通过<code>std::iterator</code>，可以把多个页的数据看做一个连续数组（支持随机访问），这使得排序的时候可以直接调用 C++ 库自带的排序算法。</p>
 <h4 id="合并有序块">合并有序块 </h4>
 <h5 id="之前版本的2路归并-cascade-2-way-merge-sorthttpsduckdborg20210827external-sortinghtml">之前版本的2路归并 (<a href="https://duckdb.org/2021/08/27/external-sorting.html">cascade 2-way merge sort</a>) </h5>
-<p>动机： 当有序块的个数较多的时候，多个线程可以并行进行合并；但是当有序块个数少于线程数的时候，为了提升效率，必须让多个线程一起参与两个有序块的合并。为此作者复现了论文 <a href="https://arxiv.org/pdf/1406.2628.pdf">Merge Path</a>。</p>
+<p>动机： 当有序块的个数较多的时候，多个线程可以并行进行合并；但是当有序块个数少于线程数的时候，为了提升效率，必须让多个线程一起参与两个有序块的合并。<strong>问题在于如何将两个有序块合并的任务划分成可并行子任务</strong>。为此作者复现了论文 <a href="https://arxiv.org/pdf/1406.2628.pdf">Merge Path</a>。</p>
 <p>算法的思想如下图所示。考虑合并两个有序数组A和B, 橙色的折线反映了合并的过程：横线表示元素来自B数组，竖线表示元素来自A数组。可以根据线程数量将橙色折线分成若干均匀段，每一段对应一个独立的合并任务。橙色折线的拐点可以用二分搜索计算出来。</p>
 <div style="text-align:center;"> <img src="merge_path.png" alt="merge path 示意图" style="display:block;margin:0 auto;max-width:40%;height:auto;"> </div>
 <h5 id="新版本的k路归并">新版本的k路归并 </h5>

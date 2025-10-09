@@ -17,8 +17,8 @@ mathjax: true  # 启用 MathJax 渲染（二选一）
 算法的基本框架仍然基于归并排序，具体实现的主要变化如下：
 - DuckDB 使用固定大小的排序键。在过去版本中，其大小在**执行时**才会被计算。当前版本使用了**新的排序键存储结构**，在**编译时**就可以知道其大小。
 - 使用了标准的256KiB block size（旧版本使用了不定大小的 block size）。通过实现 ``std::iterator`` ，允许有序块 (sorted runs) **使用非连续内存**（多个 pages）。这样不仅可以产生**更大的有序块**（用于提高后续步骤的效率），还可以直接调用 C++ 模板库的排序算法。 
-- 有序块的排序**组合使用3种排序算法**（之前仅用基数排序）：先用[Vergesort](https://github.com/Morwenn/vergesort) 处理（几乎）有序的数据，再用 [Ska Sort](https://github.com/skarupke/ska_sort) （基数排序的变种）将数据按排序键最高 64 位排序/划分，最后再使用快速排序 [Pattern-defeating quicksort](https://github.com/orlp/pdqsort)。 
-- 有序块的合并从之前的 **2-way merge** 改为使用 **k-way merge**；将之前的 **2-way merge path** 推广到 **k-way merge path**。在之前的版本中，算法会完全计算出整个排序后的序列；新算法会逐渐计算排序结果的前缀并可以随时终止，这有利于``ORDER BY ... LIMIT ...``类型的查询。
+- 有序块的排序**组合使用3种排序算法**（之前仅用基数排序）：先用 [Vergesort](https://github.com/Morwenn/vergesort) 处理（几乎）有序的数据，再用 [Ska Sort](https://github.com/skarupke/ska_sort) （基数排序的变种）将数据按排序键最高 64 位排序/划分，最后再使用快速排序 [Pattern-defeating quicksort](https://github.com/orlp/pdqsort)。 
+- 有序块的合并从之前的 **2-way merge** 改为使用 **k-way merge** （k是可配置参数）；将之前的 **2-way merge path** 推广到 **k-way merge path**。在之前的版本中，算法会完全计算出整个排序后的序列；新算法会逐渐计算排序结果的前缀并可以随时终止，这有利于``ORDER BY ... LIMIT ...``类型的查询。
 
 
 #### 新的内存页布局 (page layout)
@@ -69,7 +69,7 @@ struct FixedSortKeyPayload {
 
 ##### 之前版本的2路归并 ([cascade 2-way merge sort](https://duckdb.org/2021/08/27/external-sorting.html))
 
-动机： 当有序块的个数较多的时候，多个线程可以并行进行合并；但是当有序块个数少于线程数的时候，为了提升效率，必须让多个线程一起参与两个有序块的合并。为此作者复现了论文 [Merge Path](https://arxiv.org/pdf/1406.2628.pdf)。
+动机： 当有序块的个数较多的时候，多个线程可以并行进行合并；但是当有序块个数少于线程数的时候，为了提升效率，必须让多个线程一起参与两个有序块的合并。**问题在于如何将两个有序块合并的任务划分成可并行子任务**。为此作者复现了论文 [Merge Path](https://arxiv.org/pdf/1406.2628.pdf)。
 
 算法的思想如下图所示。考虑合并两个有序数组A和B, 橙色的折线反映了合并的过程：横线表示元素来自B数组，竖线表示元素来自A数组。可以根据线程数量将橙色折线分成若干均匀段，每一段对应一个独立的合并任务。橙色折线的拐点可以用二分搜索计算出来。
 
