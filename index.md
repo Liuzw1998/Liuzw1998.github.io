@@ -16,17 +16,16 @@ mathjax: true  # 启用 MathJax 渲染（二选一）
 
 算法的基本框架仍然基于归并排序，具体实现的主要变化如下：
 - DuckDB 使用固定大小的排序键。在过去版本中，其大小在**执行时**才会被计算。当前版本使用了**新的排序键存储结构**，在**编译时**就可以知道其大小。
-- 通过实现 ``std::iterator`` ，允许有序块 (sorted runs) **使用非连续内存**（多个 pages）。这样不仅可以产生**更大的有序块**（用于提高后续步骤的效率），还可以直接调用 C++ 自带的排序算法。 
+- 通过实现 ``std::iterator`` ，允许有序块 (sorted runs) **使用非连续内存**（多个 pages）。这样不仅可以产生**更大的有序块**（用于提高后续步骤的效率），还可以直接调用 C++ 模板库的排序算法。 
 - 有序块的排序**组合使用3种排序算法**（之前仅用基数排序）：先用[Vergesort](https://github.com/Morwenn/vergesort) 处理（几乎）有序的数据，再用 [Ska Sort](https://github.com/skarupke/ska_sort) （基数排序的变种）将数据按排序键最高 64 位排序/划分，最后再使用快速排序 [Pattern-defeating quicksort](https://github.com/orlp/pdqsort)。 
 - 有序块的合并从之前的 **2-way merge** 改为使用 **k-way merge**；将之前的 **2-way merge path** 推广到 **k-way merge path**。在之前的版本中，算法会完全计算出整个排序后的序列；新算法会逐渐计算排序结果的前缀并可以随时终止，这有利于``ORDER BY ... LIMIT ...``类型的查询。
 
 
 #### 新的内存页布局 (page layout)
-(这一段文章里没写，我参考了[以前的文章](https://duckdb.org/2024/03/29/external-aggregation.html)。 但只介绍了新的page layout是怎样的，没有介绍之前的版本是怎样的)
 
 DuckDB的内存页布局中，每一行可能会存储指向不定长数据（比如字符串）的内存指针。但是当指针指向的数据被写入磁盘后，指向的地址不再有意义，即使数据可能会被重新载入内存，但在内存中的地址也会发生变化。
 
-在过去的版本中，如果数据被写入磁盘，会导致**大量内存指针的重计算**。新版本采用如下图所示的内存页布局。
+在过去的版本中，如果数据被写入磁盘，不仅会导致**大量内存指针的重计算**，还需要**手动管理新地址**，容易出错。新版本采用如下图所示的[页布局](https://duckdb.org/2024/03/29/external-aggregation.html)。
 
 <p align="center"><img src="layout.svg" alt="layout 示意图" width="55%" /></p>
 
@@ -82,7 +81,7 @@ struct FixedSortKeyPayload {
 
 新版本将之前的多线程2路归并推广到k路 （之前产生更长的 sorted runs 对k路归并更友好）。如下图所示，假设我们需要合并$k$个有序块，并将合并后结果的前$\ell$个数存放到 Output Chunk 1 中。我们同样可以用二分搜索找出每个有序块的前面多少个元素属于合并结果的前$\ell$个（对应图中的每个 Sorted Run 里的横线）。这一部分（横线上方的元素）可以分给同一个线程来合并。 
 
-以此类推，可以继续计算合并结果的的下$\ell$个数，分别对应每个块的哪一段，交给另一个线程来合并。通过这样的划分方法，我们可以把合并$k$个有序块的任务多线程并行化。
+以此类推，可以继续计算合并结果的的下$\ell$个数 （对应下一个 Output Chunk 2），分别对应每个块的哪一段，交给另一个线程来合并。通过这样的划分方法，我们可以把合并$k$个有序块的任务多线程并行化。
 <div style="text-align:center;">
     <img src="k_way_merge.svg" alt="k-way merge 示意图" style="display:block;margin:0 auto;max-width:50%;height:auto;" />
 </div>
@@ -129,7 +128,7 @@ struct FixedSortKeyPayload {
 
 
 
-最后，作者测试了新算法的多线程并行情况，如下表所示。可以看到，单线程时旧版本反而快了30%，这是因为两者在实现基数排序的时候的差异。旧版本使用**out-of-place Least Significant Digit (LSD) radix sort**，速度更快，但占用**更多内存**；新版本使用**in-place Most Significant Digit radix sort**，原地排序占用**更少内存**。但是当线程数增加到2，二者时间就几乎没有差异。随着线程数继续增加，新版本算法逐渐发挥出优势。
+最后，作者测试了新算法的多线程并行情况，如下表所示。可以看到，单线程时旧版本反而快了30%，这是因为两者在实现基数排序的时候的差异。旧版本使用 **out-of-place Least Significant Digit (LSD) radix sort**，速度更快，但占用**更多内存**；新版本使用 **in-place Most Significant Digit radix sort**，原地排序占用**更少内存**。但是当线程数增加到2，二者时间就几乎没有差异。随着线程数继续增加，新版本算法逐渐发挥出优势。
 
 <div style="text-align: center;">
 
