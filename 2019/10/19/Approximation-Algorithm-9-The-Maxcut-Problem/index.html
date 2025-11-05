@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 8.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"liuzw1998.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Week 9: Maximum Cut and Semi-Definite Programming Problem Definition给定边权非负的无向图$G&#x3D;(V,E)$, 将其分成两个点集$(S, G \backslash S)$, 最大化$\sum_{e \in cut(S, G \backslash S)}{w_e}$. Simple 2-approximation Algor">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Approximation Algorithm(9)-The Maxcut Problem">
+<meta property="og:url" content="https://liuzw1998.github.io/2019/10/19/Approximation-Algorithm-9-The-Maxcut-Problem/index.html">
+<meta property="og:site_name" content="Zhenwei&#39;s Blog">
+<meta property="og:description" content="Week 9: Maximum Cut and Semi-Definite Programming Problem Definition给定边权非负的无向图$G&#x3D;(V,E)$, 将其分成两个点集$(S, G \backslash S)$, 最大化$\sum_{e \in cut(S, G \backslash S)}{w_e}$. Simple 2-approximation Algor">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-10-19T13:46:06.000Z">
+<meta property="article:modified_time" content="2025-11-05T02:41:00.476Z">
+<meta property="article:author" content="Zhenwei Liu">
+<meta property="article:tag" content="Approximation Algorithms">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://liuzw1998.github.io/2019/10/19/Approximation-Algorithm-9-The-Maxcut-Problem/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      processEscapes: true,
+      processEnvironments: true,
+      tags: 'ams'
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+  };
+</script>
+
+  <title>Approximation Algorithm(9)-The Maxcut Problem | Zhenwei's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zhenwei's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://liuzw1998.github.io/2019/10/19/Approximation-Algorithm-9-The-Maxcut-Problem/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Zhenwei Liu">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zhenwei's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Approximation Algorithm(9)-The Maxcut Problem
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-10-19 13:46:06" itemprop="dateCreated datePublished" datetime="2019-10-19T13:46:06+00:00">2019-10-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-11-05 02:41:00" itemprop="dateModified" datetime="2025-11-05T02:41:00+00:00">2025-11-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Algorithm/" itemprop="url" rel="index"><span itemprop="name">Algorithm</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Algorithm/Combinatorial-Optimization/" itemprop="url" rel="index"><span itemprop="name">Combinatorial Optimization</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>Week 9: Maximum Cut and Semi-Definite Programming</strong></p>
+<h4 id="Problem-Definition"><a href="#Problem-Definition" class="headerlink" title="Problem Definition"></a>Problem Definition</h4><p>给定边权非负的无向图$G&#x3D;(V,E)$, 将其分成两个点集$(S, G \backslash S)$, 最大化$\sum_{e \in cut(S, G \backslash S)}{w_e}$.</p>
+<h4 id="Simple-2-approximation-Algorithms"><a href="#Simple-2-approximation-Algorithms" class="headerlink" title="Simple 2-approximation Algorithms"></a>Simple 2-approximation Algorithms</h4><p>假设对于每个点, 有$p$的概率选入集合$S$, 那么<br>$$<br>E(output) &#x3D; \sum_{e:&#x3D;(u, v)}{w_e Pr[u, v \text{ belong to different parts }]} &#x3D;  2p(1-p) \sum_{e:&#x3D;(u, v)}{w_e} \geq 2p(1-p) OPT<br>$$<br>显然取$p&#x3D;0.5$结果最好, 此时$E(output) \geq \frac{1}{2}OPT$. </p>
+<p>偶然看到<a target="_blank" rel="noopener" href="https://gitee.com/zhenweiliu/papers/raw/master/papers%20in%20blog/maxcut.pdf">一篇资料</a>讲了如何把随机去掉，挺有意思的。在资料的3.1节部分, 过程如下：<br>给每个点分配不同的向量$\boldsymbol{x_u} \in \mathbb{F_2^k}$, 取$k &#x3D; \lceil \log_2(|V|) \rceil$即可保证存在这样的分配。<br>然后随机一个向量$\boldsymbol{r} \in \mathbb{F_2^k}$, 令$S:&#x3D; {u | \boldsymbol{r} \cdot \boldsymbol{x_u} &#x3D; 1 }$。<br>$$<br>\begin{aligned}<br>E(output) &amp;&#x3D; \sum_{e:&#x3D;(u, v)}{w_e Pr[u, v \text{ belong to different parts }]} \<br>&amp;&#x3D;  \sum_{e:&#x3D;(u, v)}{w_e Pr[\boldsymbol{r} \cdot (\boldsymbol{x_u-x_v}) \neq 0 ]} \<br>&amp;&#x3D; \sum_{e:&#x3D;(u, v)}{\frac{1}{2}w_e} \<br>&amp;\geq \frac{1}{2}OPT<br>\end{aligned}<br>$$<br>这里用到了结论$Pr[\boldsymbol{r} \cdot (\boldsymbol{x_u-x_v}) \neq 0] &#x3D; \frac{1}{2}$, 因为对于任意$\boldsymbol{w} \in \mathbb{F_2^k}$, 满足$\boldsymbol{v} \cdot \boldsymbol{w} &#x3D; 0$的向量$\boldsymbol{v}$构成了维度为$k-1$的子空间, 因此有$2^{k-1}$个满足要求的$\boldsymbol{v}$, 恰好是一半。<br>如果随机取一个$\boldsymbol{r}$, 期望是$OPT$的一半。而$\boldsymbol{r}$的取值只有$2^k &#x3D; O(|V|)$种, 可以穷举所有的$\boldsymbol{r}$然后取最优的，肯定比期望要好，这样就把算法从期望一半变成了确定的一半。</p>
+<p>还有一个更加简单的贪心做法：<br>初始化集合$A&#x3D;B&#x3D;\emptyset$. 依次考虑每个点, 如果把它加入$A$集合收益大(收益指$\sum_{e \in (A,B)}{w_e}$增加的量)，就加入，否则加入$B$集合。<br>容易证明在这个过程中始终满足下面的性质:<br>$$<br>\sum_{e \in (A,B)}{w_e} \geq \sum_{e \in (A,A)}{w_e} + \sum_{e \in (B,B)}{w_e}<br>$$<br>从而得出$\sum_{e \in (A,B)}{w_e} \geq \frac{1}{2}\sum_{e}{w_e} \geq \frac{1}{2}OPT$ </p>
+<h4 id="Integer-Programming-Formulation"><a href="#Integer-Programming-Formulation" class="headerlink" title="Integer Programming Formulation"></a>Integer Programming Formulation</h4><p>如果用每个点是否在集合$S$中作为变量, 目标函数就不是线性的了, 而是后面会提到的Semi-Definite Programming.<br>这里用$x_{ij} \in {0, 1}$表示点$i$和点$j$是否属于同一个集合, 那么目标函数就是$\sum_{ij}{w_{ij}x_{ij}}$。</p>
+<p>给定一组${x_{ij} }$, 取$S:&#x3D;{v|x_{1v} &#x3D; 0}$为其对应的解。<br>先来看${x_{ij}}$合法的一些必要条件:</p>
+<ol>
+<li>考虑三个点$i, j, k$, 显然不可能$x_{ij}, x_{ik}, x_{jk}$都是1, 因此$x_{ij}+x_{ik}+x_{jk} \geq 2$.</li>
+<li>考虑三个点$i, j, k$, 如果有两条边对应的变量是0, 说明这三个点属于同一个集合, 那么第三条边对应的变量也必须是0, 因此有$x_{ij} \leq x_{ik} + x_{jk}$.</li>
+</ol>
+<p>下面证明如果${x_{ij}}$满足这两个条件, 其对应的解$S:&#x3D;{v|x_{1v} &#x3D; 0}$是合法的:</p>
+<p>需要证明$u, v$在不同集合当且仅当$x_{uv} &#x3D; 1$.</p>
+<ul>
+<li>如果$u, v \in S$, 那么取$V \backslash S$中的一点$w$(如果不存在，说明所有点都在$S$中，所有变量都是0), $x_{uv} + x_{uw} + x_{vw} &#x3D; x_{uv} + 1 + 1 \geq 2$,  因此$x_{uv} &#x3D; 0$. </li>
+<li>如果$u,v \notin S$, 那么$x_{1u}+x_{1v}+x_{uv} &#x3D; 1 + 1 + x_{uv} \leq 2$, 即$x_{uv} &#x3D; 0$.</li>
+<li>如果$u \in S, v \notin S$, 那么$x_{1v} \leq x_{1u} + x_{uv}$, 即$1 \leq 0 + x_{uv}$, 所以$x_{uv} &#x3D; 1$.</li>
+</ul>
+<p>因此得到Maxcut问题的一个线性规划模型：<br>$$<br>\begin{aligned}<br>\text{maximize} &amp; \sum_{i &lt; j}{w_{ij}x_{ij}}  \<br>\text{subject to} \ &amp;x_{ij} + x_{ik} + x_{jk} &amp;\leq 2 \quad &amp;\forall i,j,k \in V \<br>&amp;x_{ij} - x_{ik} - x_{jk} &amp;\leq 0 \quad &amp;\forall i,j,k \in V \<br>&amp;x_{ij} \in {0, 1} \quad &amp; &amp;\forall i, j \in V<br>\end{aligned}<br>$$</p>
+<h4 id="Integrality-Gap-of-LP-Model"><a href="#Integrality-Gap-of-LP-Model" class="headerlink" title="Integrality Gap of LP Model"></a>Integrality Gap of LP Model</h4><p>上面提出的线性规划模型虽然很有道理，然而下面要证明一个悲惨的事实: 基于上面线性规划的近似算法不可能做到比2更好的近似比。<br>integrality gap指的是线性规划的实数最优解和整数最优解的比值。下面假设解决的是一个求最大值的问题。<br>如果有常数$\beta$, 对问题的任意instance $I$,恒有 $\frac{LP(I)}{IP(I)} \geq \beta$, 那么称$\beta$的最大值为这个问题的integrality gap。<br>在借助线性规划模型设计近似算法并证明近似度的时候，我们需要证明$\frac{IP(I)}{output} \leq \alpha$。但是谁也不知道$IP(I)$是多少，我们只能用$\frac{LP(I)}{output}$ 来bound $\frac{IP(I)}{output}$。 而$\frac{LP(I)}{output} \geq \frac{LP(I)}{IP(I)} \geq \beta$, 因此我们不可能设计近似算法做到比$\beta$更好的近似度。<br>对于maxcut问题, 可以证明integrality gap是2. </p>
+<p>coursera上的证明非常不完整，我找了很多paper都指向了这篇：<br><em>Svatopluk Poljak. Polyhedral and eigenvalue approximations of the max-cut problem. Sets, Graphs and Numbers, Colloquia Mathematica Societatis Janos Bolyai, 60:569–581, 1992</em>.<br>遗憾的是这好像是一本书，没法免费下载。</p>
+<p>coursera上提到了大致思想是: 考虑图$G(n, p)$, 每条边有$p$的概率在这个图内。边权都是1.<br>定义事件A: 图$G$包含于某个长度不大于$k$的环中的边数不超过$|V|^{0.5}$.<br>定义事件B: 把图$G$包含于某个长度不大于$k$的环中的边全删掉得到的图$G’$满足$maxcut(G’) \leq (\frac{1}{2}+o(1)) |E|$<br>根据<a target="_blank" rel="noopener" href="https://gitee.com/zhenweiliu/papers/raw/master/papers%20in%20blog/poljak1994.pdf">paper1</a>如果一个图G不存在长度小于$k$($k$比较小)的环, 那么$LP(G)$非常接近边的数量。从而推出$LP(G’) \geq (1-o(1))|E|$.<br>paper1中把我们的LP转化为另一个LP, 并说明两个LP的最优解是一样的，证明在<a target="_blank" rel="noopener" href="https://gitee.com/zhenweiliu/papers/raw/master/papers%20in%20blog/cut-lp.pdf">paper2</a>中, 我花了大概1h看了下，感觉证明思路挺新奇的。<br>最后通过证明$Pr[A \cap B] \gt 0$, 说明存在某个图$G’$, $\frac{LP(G’)}{maxcut(G’)} &#x3D; 2-o(1)$.</p>
+<h4 id="Semi-Definite-Programming"><a href="#Semi-Definite-Programming" class="headerlink" title="Semi-Definite Programming"></a>Semi-Definite Programming</h4><p>其实刚拿到maxcut这个问题，更自然地会想到用每个点是否在集合$S$中作为变量来写出一个规划方程:<br>$$<br>\begin{aligned}<br>\text{maximize} \quad &amp;\frac{1}{2} \sum_{i &lt; j}{w_{ij}(1-x_ix_j)} \<br>\text{subject to} \quad &amp;x_i \in {-1, 1} \quad \forall i \in V<br>\end{aligned}<br>$$<br>同样地, 我们希望把变量是整数的限制去掉, 做一个relaxation。<br>注意到$x_i^2 &#x3D; 1$, 开一下脑洞, 把$x_i$看做是一个$d$维向量, 之后记为$\boldsymbol{v_i} \in \mathbb{R^d}$, 满足$|\boldsymbol{v_i}|_2 &#x3D; 1$.</p>
+<p>我们得到一个向量规划:<br>$$<br>\begin{aligned}<br>\text{maximize} \quad &amp;\frac{1}{2} \sum_{i &lt; j} w_{ij}(1-\boldsymbol{v_i}\cdot \boldsymbol{v_j}) \<br>\text{subject to} \quad &amp;|\boldsymbol{v_i}|^2&#x3D;1 \quad \forall i \in V<br>\end{aligned}<br>$$<br>观察到上面的规划式子只和向量$\boldsymbol{v_i}\cdot \boldsymbol{v_j}$有关, 对应一个对称的实矩阵$A$, 满足$A_{ij}:&#x3D; \boldsymbol{v_i}\cdot \boldsymbol{v_j}$。可以证明这个矩阵是半正定的(positive semi-definite):<br>证明: $V:&#x3D;(\boldsymbol{v_1}, \boldsymbol{v_2}, \cdots, \boldsymbol{v_n}) \rightarrow A&#x3D;V^TV \rightarrow \forall \boldsymbol{x}\in \mathbb{R^n}, \boldsymbol{x}^TA\boldsymbol{x} &#x3D; (Vx)^T(Vx) &#x3D; |Vx|_2 \geq 0$.<br>反过来, 如果取向量$\boldsymbol{v_i}$的维度$d &#x3D; n$, 那么任意一个半正定的矩阵也对应了一组$\boldsymbol{v_i}$, 因为任意半正定矩阵$A$可以分解为$U^TU$的形式, $U$是特征向量构成的矩阵, 让$\boldsymbol{v_i}$对应$U$的每一列即可。</p>
+<p>因此上面的向量规划的可行解和下面的半正定规划的可行解对应：<br>$$<br>\begin{aligned}<br>\text{maximize} \quad &amp;\frac{1}{2} \sum_{i &lt; j}{w_{ij}(1-A_{ij})} \<br>\text{subject to} \quad &amp;A_{ii}&#x3D;1 \quad \forall 1\leq i \leq n \<br>&amp;A \text{ is positive semi-definite}<br>\end{aligned}<br>$$<br>这个规划是个凸优化, 用椭球法可以在多项式时间内获得任意接近最优解的解(最优解可能是无理数, 只能无限逼近)。<br>之后, 我们假定已经求出了最优解对应的向量$\boldsymbol{v_1}, \boldsymbol{v_2}, \cdots, \boldsymbol{v_n}$, 定义$\theta_{ij}$为$\boldsymbol{v_i}, \boldsymbol{v_j}$之间的夹角.<br>显然<br>$$<br>OPT \leq \frac{1}{2} \sum_{i &lt; j}{w_{ij}(1-\boldsymbol{v_i}\cdot \boldsymbol{v_j})} &#x3D; \frac{1}{2} \sum_{i &lt; j}{w_{ij}(1-\cos\theta_{ij})}<br>$$</p>
+<p>考虑rounding: 随机取一个单位向量$\boldsymbol{r}$, $|\boldsymbol{r}|<em>2 &#x3D; 1$, 如果$\boldsymbol{v_i} \cdot \boldsymbol{r} \gt 0$, $x_i :&#x3D; 1$, 否则$x_i :&#x3D; 0$。考虑解的期望值:<br>$$<br>E[output] &#x3D;  \sum</em>{i &lt; j}{w_{ij}E[\frac{1-\boldsymbol{v_i}\cdot \boldsymbol{v_j}}{2}]} &#x3D; \sum_{i &lt; j}{w_{ij}Pr[\boldsymbol{v_i} \cdot \boldsymbol{r} \neq \boldsymbol{v_j} \cdot \boldsymbol{r}]}<br>$$</p>
+<p>关键是分析$Pr[\boldsymbol{v_i} \cdot \boldsymbol{r} \neq \boldsymbol{v_j} \cdot \boldsymbol{r}]$.<br>设过原点并与$\boldsymbol{v_i}$垂直的平面$F_1$, 过原点并与$\boldsymbol{v_j}$垂直的平面$F_2$, $\boldsymbol{v_i} \cdot \boldsymbol{r} \neq \boldsymbol{v_j} \cdot \boldsymbol{r}$当且仅当$\boldsymbol{r}$落在$F_1, F_2$的夹角中间(小于等于90度的角), 因此概率就是$\frac{\theta_{ij}}{\pi}$. (从三维几何的角度很容易想明白, 但是更高维感觉就不怎么显然了, 我尝试寻找一个代数的证明, 然而网上的资料包括算法的原论文都是从几何的角度一笔带过, 暂时留个坑吧)<br>再利用一个lemma: $\frac{\theta}{\pi} \geq 0.878\frac{1-\cos\theta_{ij}}{2}$<br>$$<br>E[output] &#x3D; \sum_{i &lt; j}{w_{ij}\frac{\theta_{ij}}{\pi}} \geq 0.878\sum_{i &lt; j}{w_{ij}\frac{1-\cos\theta_{ij}}{2}}<br>$$<br>因此$\frac{E[output]}{OPT} \geq 0.878$.<br>lemma的证明只需要求$\frac{\pi(1-\cos \theta)}{2\theta}$的最大值就好了。</p>
+<p>可以证明在<strong>Unique Games Conjecture</strong>成立的情况下, 不可能做到比0.878更好。 </p>
+<p>最后还有一个有趣的小问题: 如何随机一个向量$\boldsymbol{r}$?<br>只要令$r_i \sim N(0, 1)$, 即每一维的取值独立地服从标准正态分布, 最后做一次正规化让它的模变成1即可。<br>证明:<br>$$p(x_1, \cdots, x_n) &#x3D; \int_0^{\infty}{\prod_{i&#x3D;1}^n \frac{ e^{-\frac{(tx_i)^2}{2}} }{\sqrt{2 \pi}}dt} &#x3D;<br>\int_{0}^{\infty}{\frac{e^{-\frac{1}{2}t^2\sum_{i&#x3D;1}^n{x_i^2}}}{(2\pi)^{n&#x2F;2}}dt} &#x3D; \int_0^{\infty}{\frac{e^{-\frac{1}{2}t^2}}{(2\pi)^{n&#x2F;2}}dt}<br>$$<br>和具体$x_i$的取值无关。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Approximation-Algorithms/" rel="tag"># Approximation Algorithms</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/09/27/Approximation-Algorithm-8-The-Facility-Location-Problem/" rel="prev" title="Approximation Algorithm(8)-The Facility Location Problem">
+      <i class="fa fa-chevron-left"></i> Approximation Algorithm(8)-The Facility Location Problem
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/22/Coding-Theory-Linear-Code/" rel="next" title="Coding Theory-Linear Code">
+      Coding Theory-Linear Code <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#Problem-Definition"><span class="nav-number">1.</span> <span class="nav-text">Problem Definition</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Simple-2-approximation-Algorithms"><span class="nav-number">2.</span> <span class="nav-text">Simple 2-approximation Algorithms</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Integer-Programming-Formulation"><span class="nav-number">3.</span> <span class="nav-text">Integer Programming Formulation</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Integrality-Gap-of-LP-Model"><span class="nav-number">4.</span> <span class="nav-text">Integrality Gap of LP Model</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Semi-Definite-Programming"><span class="nav-number">5.</span> <span class="nav-text">Semi-Definite Programming</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Zhenwei Liu</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenwei Liu</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>

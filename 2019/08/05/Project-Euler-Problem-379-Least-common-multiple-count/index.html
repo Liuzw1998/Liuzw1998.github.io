@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 8.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"liuzw1998.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Problem:求有多少正整数对$(x, y)$满足$x \leq y$并且$x, y$的最小公倍数$\leq 10^{12}$. Solution:为了方便，先去掉$x \leq y$的限制: 设$N &#x3D; 10^{12}$, 那么原问题的答案 &#x3D; (去掉 $x\leq y$的限制后的答案+N) &#x2F; 2.   枚举$(x, y)$的最大公约数$d$,即$x &amp;#x3D">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Project Euler Problem 379-Least common multiple count">
+<meta property="og:url" content="https://liuzw1998.github.io/2019/08/05/Project-Euler-Problem-379-Least-common-multiple-count/index.html">
+<meta property="og:site_name" content="Zhenwei&#39;s Blog">
+<meta property="og:description" content="Problem:求有多少正整数对$(x, y)$满足$x \leq y$并且$x, y$的最小公倍数$\leq 10^{12}$. Solution:为了方便，先去掉$x \leq y$的限制: 设$N &#x3D; 10^{12}$, 那么原问题的答案 &#x3D; (去掉 $x\leq y$的限制后的答案+N) &#x2F; 2.   枚举$(x, y)$的最大公约数$d$,即$x &amp;#x3D">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-08-05T22:52:51.000Z">
+<meta property="article:modified_time" content="2025-11-05T02:41:00.476Z">
+<meta property="article:author" content="Zhenwei Liu">
+<meta property="article:tag" content="Number Theory">
+<meta property="article:tag" content="Project Euler">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://liuzw1998.github.io/2019/08/05/Project-Euler-Problem-379-Least-common-multiple-count/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      processEscapes: true,
+      processEnvironments: true,
+      tags: 'ams'
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+  };
+</script>
+
+  <title>Project Euler Problem 379-Least common multiple count | Zhenwei's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zhenwei's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://liuzw1998.github.io/2019/08/05/Project-Euler-Problem-379-Least-common-multiple-count/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Zhenwei Liu">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zhenwei's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Project Euler Problem 379-Least common multiple count
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-08-05 22:52:51" itemprop="dateCreated datePublished" datetime="2019-08-05T22:52:51+00:00">2019-08-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-11-05 02:41:00" itemprop="dateModified" datetime="2025-11-05T02:41:00+00:00">2025-11-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Algorithm/" itemprop="url" rel="index"><span itemprop="name">Algorithm</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h4 id="Problem"><a href="#Problem" class="headerlink" title="Problem:"></a>Problem:</h4><p>求有多少正整数对$(x, y)$满足$x \leq y$并且$x, y$的最小公倍数$\leq 10^{12}$.</p>
+<h4 id="Solution"><a href="#Solution" class="headerlink" title="Solution:"></a>Solution:</h4><p>为了方便，先去掉$x \leq y$的限制:</p>
+<p>设$N &#x3D; 10^{12}$, 那么原问题的答案 &#x3D; (去掉 $x\leq y$的限制后的答案+N) &#x2F; 2.  </p>
+<p>枚举$(x, y)$的最大公约数$d$,即$x &#x3D; id, y &#x3D; jd$, 最小公倍数就是$ijd$, 当然还要求$i, j$互质。</p>
+<p>令$[expression]$表示当表达式为真的时候是1，否则是0。</p>
+<p>$(i, j)$表示$i,j$的最大公约数)。</p>
+<p>$h(n) &#x3D; \sum\limits_{i&#x3D;1}\sum\limits_{j&#x3D;1}\lfloor\frac{n}{ij} \rfloor$。</p>
+<p>利用莫比乌斯函数容斥去掉$i, j$互质的限制。</p>
+<p>要求的就是下面的式子：<br>$$<br>\begin{aligned}<br>answer &amp;&#x3D;\sum\limits_{i&#x3D;1}^{N}\sum\limits_{j &#x3D; 1}^{N}\sum\limits_{d}[(i, j) &#x3D; 1](ijd\leq N) \<br>&amp;&#x3D; \sum\limits_{i&#x3D;1}^{N}\sum\limits_{j &#x3D; 1}^{N}[(i, j) &#x3D; 1]\lfloor\frac{N}{ij} \rfloor \<br>&amp;&#x3D; \sum\limits_{d&#x3D;1}^{N}\mu(d)\sum\limits_{i \geq 1}\sum\limits_{j \geq 1}\lfloor\frac{N}{ijd^2} \rfloor\<br>&amp;&#x3D; \sum\limits_{d&#x3D;1}^{N}\mu(d) h(\lfloor \frac{N}{d^2} \rfloor) \<br>&amp;&#x3D; \sum\limits_{d&#x3D;1}^{\sqrt {N}}\mu(d) h(\lfloor \frac{N}{d^2} \rfloor)<br>\end{aligned}<br>$$</p>
+<p>考虑如何算$h(n)$: </p>
+<p>令$hh(n) &#x3D; \sum\limits_{i&#x3D;1}^{n}{\lfloor \frac{n}{i}\rfloor}$。<br>$$<br>\begin{aligned}<br>h(n) &amp;&#x3D;  \sum\limits_{i\geq 1}\sum\limits_{j\geq 1}\lfloor\frac{n}{ij} \rfloor \<br>&amp;&#x3D; \sum\limits_{i&#x3D;1}^{n}{hh(\lfloor \frac{n}{i}\rfloor)}<br>\end{aligned}<br>$$</p>
+<p>$hh(n)$可以在$O(\sqrt n)$的时间内计算(根据$\lfloor \frac{n}{i} \rfloor$只有$O(\sqrt n)$种不同的取值分段计算)。</p>
+<p>同理, $h(n)$也可以根据$\lfloor \frac{n}{i} \rfloor$的值分段计算, 复杂度是$O(n^{\frac{3}{4}})$.</p>
+<p>复杂度推导:</p>
+<ul>
+<li><p>当$i \geq \sqrt n$的时候,  $\lfloor \frac{n}{i} \rfloor \leq \sqrt n$, 对时间复杂度的贡献不超过$\sum\limits_{i&#x3D;1}^{\sqrt n}{O(\sqrt i)}$, $\sum\limits_{i&#x3D;1}^{\sqrt n }{\sqrt i} \leq  \int\limits_{1}^{\sqrt n + 1}{\sqrt x \ dx} &#x3D; O(n^{\frac{3}{4}})$</p>
+</li>
+<li><p>当$i \lt \sqrt n$的时候,  对时间复杂度的贡献不超过$\sum\limits_{i&#x3D;1}^{\sqrt n}{O(\sqrt {\frac{n}{i}})}$,  $\sum\limits_{i&#x3D;1}^{\sqrt n}{\sqrt {\frac{n}{i}}} \leq \int\limits_{0}^{\sqrt n}{\sqrt{\frac{n}{x}} dx} &#x3D; O(n^{\frac{3}{4}})$</p>
+</li>
+</ul>
+<p>因此总复杂度是$O(n^{\frac{3}{4}})$.</p>
+<p>计算总答案$answer &#x3D;\sum\limits_{d&#x3D;1}^{\sqrt {N}}\mu(d) h(\lfloor \frac{N}{d^2} \rfloor)$的复杂度：<br>$$<br>\begin{aligned}<br>\sum\limits_{d&#x3D;1}^{\sqrt {N}}{(\frac{N}{d^2})^{\frac{3}{4}}} &amp;&#x3D; N^{\frac{3}{4}} \sum\limits_{d&#x3D;1}^{\sqrt {N}}{d^{-\frac{3}{2}}} \<br>&amp;\leq N^{\frac{3}{4}} \int\limits_{0}^{\sqrt N}{x^{-\frac{3}{2}} dx} \<br>&amp;&#x3D; O(N^{\frac{3}{4}})<br>\end{aligned}<br>$$</p>
+<h4 id="Implementation"><a href="#Implementation" class="headerlink" title="Implementation:"></a>Implementation:</h4><p>在我的机子上大约需要跑5min。<br>可以通过预处理函数$hh(1\cdots 10^6)$来加速，不过加上这个优化之后我就不太会分析复杂度…不过效果还是很好的, 实测加上之后只需要跑1min左右。<br>以下代码是不加优化的:</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;bits/stdc++.h&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="type">const</span> <span class="type">int</span> LIM = <span class="number">1e6</span><span class="number">+10</span>;</span><br><span class="line"><span class="keyword">typedef</span> <span class="type">long</span> <span class="type">long</span> LL;</span><br><span class="line"><span class="type">int</span> flag[LIM], p[LIM], mu[LIM];</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function">LL <span class="title">hh</span><span class="params">(LL n)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// can add optimization: if (n &lt; M) return hh[n];</span></span><br><span class="line">	LL ret = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">for</span> (LL l = <span class="number">1</span>, r; l &lt;= n; l = r + <span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		r = n / (n/l);</span><br><span class="line">		ret += (r-l<span class="number">+1</span>) * (n/l); </span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">LL <span class="title">h</span><span class="params">(LL n)</span> <span class="comment">// h(n) = sum(n/ij)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	LL ret = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">for</span> (LL l = <span class="number">1</span>, r; l &lt;= n; l = r + <span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		r = n / (n/l);</span><br><span class="line">		ret += (r-l<span class="number">+1</span>) * <span class="built_in">hh</span>(n/l); </span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	mu[<span class="number">1</span>] = <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">2</span>; i &lt; LIM; ++i)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">if</span> (!flag[i]) mu[i] = <span class="number">-1</span>, p[++p[<span class="number">0</span>]] = i;</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">1</span>; j &lt;= p[<span class="number">0</span>] &amp;&amp; i*p[j] &lt; LIM; ++j)</span><br><span class="line">		&#123;</span><br><span class="line">			flag[i*p[j]] = <span class="number">1</span>;</span><br><span class="line">			<span class="keyword">if</span> (i % p[j] == <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">			mu[i*p[j]] = -mu[i];</span><br><span class="line">		&#125;</span><br><span class="line"> 	&#125;</span><br><span class="line">	</span><br><span class="line"> 	LL n = <span class="number">1e12</span>, ans = <span class="number">0</span>; </span><br><span class="line"> 	<span class="keyword">for</span> (LL d = <span class="number">1</span>; d*d &lt;= n; ++d)</span><br><span class="line"> 	&#123;</span><br><span class="line"> 		<span class="keyword">if</span> (!mu[d]) <span class="keyword">continue</span>;</span><br><span class="line"> 		ans += mu[d] * <span class="built_in">h</span>(n/d/d);</span><br><span class="line"> 	&#125;</span><br><span class="line"> 	ans = (ans+n) / <span class="number">2</span>;</span><br><span class="line"> 	cout &lt;&lt; ans &lt;&lt; endl;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="More-Efficient-Solution"><a href="#More-Efficient-Solution" class="headerlink" title="More Efficient Solution:"></a>More Efficient Solution:</h4><p>#### More Efficient Solution:</p>
+<p>$h(n) &#x3D; \sum\limits_{i, j \geq 1}{\lfloor \frac{N}{ij} \rfloor}$实际上是在求满足$i,j,k \in Z^+, ijk\leq N$的triple($i$, $j$, $k$)的数量.</p>
+<p>分下面3种情况来算:</p>
+<p>$ans_1$: $i &lt; j &lt; k$的答案。</p>
+<p>$ans_2$: $i&#x3D;j&#x3D;k$的答案.</p>
+<p>$ans_3$: $i&#x3D;j\neq k$的答案. </p>
+<p>那么根据对称性有$h(n) &#x3D; 6ans_1 + ans_2 + 3ans_3$</p>
+<p>计算$ans_1$:</p>
+<p>注意到$i \leq  n^{\frac{1}{3}}$, 枚举$i$, 然后对$j$分段, 复杂度是$\sum\limits_{i&#x3D;1}^{n^{\frac{1}{3}}}{\sqrt{\frac{n}{i}}} &#x3D; O(n^{\frac{2}{3}})$</p>
+<p>计算$ans_2$:</p>
+<p>$ans2 &#x3D; \lfloor \sqrt[3]{n}\rfloor, O(1)$</p>
+<p>计算$ans_3$:</p>
+<p>$ans_3 &#x3D; \sum\limits_{k&#x3D;1}^{n}{\lfloor \sqrt{\frac{n}{k}} \rfloor} - ans_2 &#x3D; \sum\limits_{k&#x3D;1}^{n}{\lfloor \sqrt{\lfloor \frac{n}{k} \rfloor} \rfloor} - ans_2$ </p>
+<p>可以根据$\lfloor \frac{n}{k} \rfloor$的取值分块计算, 复杂度$O(\sqrt n)$.</p>
+<p>综上我们可以在$O(n^{\frac{2}{3}})$的时间里计算$h(n)$, 比之前的$O(n^{\frac{3}{4}})$要好一些。</p>
+<p>计算总答案的时间就可以优化成:<br>$$<br>\begin{aligned}<br>\sum\limits_{d&#x3D;1}^{\sqrt {N}}{(\frac{N}{d^2})^{\frac{2}{3}}} &amp;&#x3D; N^{\frac{2}{3}} \sum\limits_{d&#x3D;1}^{\sqrt {N}}{d^{-\frac{4}{3}}} \<br>&amp;\leq N^{\frac{2}{3}} \int\limits_{0}^{\sqrt N}{x^{-\frac{4}{3}} dx} \<br>&amp;&#x3D; O(N^{\frac{2}{3}})<br>\end{aligned}<br>$$</p>
+<p><strong>Implementation</strong>:<br>我的电脑上运行只需要11s。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;bits/stdc++.h&gt;</span><br><span class="line">using namespace std;</span><br><span class="line"></span><br><span class="line">const int LIM = 1e6+10;</span><br><span class="line">typedef long long LL;</span><br><span class="line">int flag[LIM], p[LIM], mu[LIM];</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">LL h(LL n) // h(n) = sum(n/ij)</span><br><span class="line">&#123;</span><br><span class="line">	LL ans1 = 0; // i &lt; j &lt; k</span><br><span class="line">	for (LL i = 1; i*i*i &lt;= n; ++i)</span><br><span class="line">	&#123;</span><br><span class="line">		LL m = n/i;</span><br><span class="line">		// j &lt; [n/ij]</span><br><span class="line">		// j &lt;= n/ij - 1</span><br><span class="line">		// j*(j+1) &lt;= m</span><br><span class="line">		LL lim = sqrt(m);</span><br><span class="line">		while (lim*(lim+1) &gt; m) --lim;</span><br><span class="line">		while ((lim+1)*(lim+2) &lt;= m) ++lim;</span><br><span class="line">		for (LL l = i+1, r, v; l &lt;= lim; l = r+1)</span><br><span class="line">		&#123;</span><br><span class="line">			v = m/l;</span><br><span class="line">			r = m/v;</span><br><span class="line">			ans1 += v*(r-l+1) - (l+r)*(r-l+1)/2;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	// i=j=k</span><br><span class="line">	LL ans2 = pow(n, 1.0/3);</span><br><span class="line">	while (ans2*ans2*ans2 &gt; n) --ans2;</span><br><span class="line">	while ((ans2+1)*(ans2+1)*(ans2+1) &lt;= n) ++ans2;</span><br><span class="line">	</span><br><span class="line">	// i=j, k != i</span><br><span class="line">	LL ans3 = -ans2;</span><br><span class="line">	for (LL l = 1, r, v; l &lt;= n; l = r+1)</span><br><span class="line">	&#123;</span><br><span class="line">		v = n/l;</span><br><span class="line">		r = n/v;</span><br><span class="line">		ans3 += (r-l+1)* (LL)sqrtl(v);</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	return 6*ans1 + ans2 + 3*ans3;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">	mu[1] = 1;</span><br><span class="line">	for (int i = 2; i &lt; LIM; ++i)</span><br><span class="line">	&#123;</span><br><span class="line">		if (!flag[i]) mu[i] = -1, p[++p[0]] = i;</span><br><span class="line">		for (int j = 1; j &lt;= p[0] &amp;&amp; i*p[j] &lt; LIM; ++j)</span><br><span class="line">		&#123;</span><br><span class="line">			flag[i*p[j]] = 1;</span><br><span class="line">			if (i % p[j] == 0) break;</span><br><span class="line">			mu[i*p[j]] = -mu[i];</span><br><span class="line">		&#125;</span><br><span class="line"> 	&#125;</span><br><span class="line">	</span><br><span class="line"> 	LL n = 1e12, ans = 0; </span><br><span class="line"> 	for (LL d = 1; d*d &lt;= n; ++d)</span><br><span class="line"> 	&#123;</span><br><span class="line"> 		if (!mu[d]) continue;</span><br><span class="line"> 		ans += mu[d] * h(n/d/d);</span><br><span class="line"> 	&#125;</span><br><span class="line"> 	ans = (ans+n) / 2;</span><br><span class="line"> 	cout &lt;&lt; ans &lt;&lt; endl;</span><br><span class="line">	return 0; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Number-Theory/" rel="tag"># Number Theory</a>
+              <a href="/tags/Project-Euler/" rel="tag"># Project Euler</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/08/01/Approximation-Algorithm-4-The-Set-Cover-Problem/" rel="prev" title="Approximation Algorithm(4)-The Set Cover Problem">
+      <i class="fa fa-chevron-left"></i> Approximation Algorithm(4)-The Set Cover Problem
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/08/07/Stoer%E2%80%93Wagner-Algorithm/" rel="next" title="Stoer–Wagner Algorithm">
+      Stoer–Wagner Algorithm <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#Problem"><span class="nav-number">1.</span> <span class="nav-text">Problem:</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Solution"><span class="nav-number">2.</span> <span class="nav-text">Solution:</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Implementation"><span class="nav-number">3.</span> <span class="nav-text">Implementation:</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#More-Efficient-Solution"><span class="nav-number">4.</span> <span class="nav-text">More Efficient Solution:</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Zhenwei Liu</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenwei Liu</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>

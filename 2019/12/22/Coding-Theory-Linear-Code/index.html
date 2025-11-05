@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 8.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"liuzw1998.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Introduction编码的目的：将信息通过某种方式编码后传输(比如ASCII码将字母变成8位01串)，使之满足下面的某些性质：  编码速度快。 编码结果易于传输。 解码速度快。 极大化信息传输率(可以理解为用尽可能少的长度表示尽可能多的信息)。 检测&#x2F;纠正传输错误。  Basic ConceptsNotations code alphabet. 用于编码的字符集, 字符集中的元素成为">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Coding Theory-Linear Code">
+<meta property="og:url" content="https://liuzw1998.github.io/2019/12/22/Coding-Theory-Linear-Code/index.html">
+<meta property="og:site_name" content="Zhenwei&#39;s Blog">
+<meta property="og:description" content="Introduction编码的目的：将信息通过某种方式编码后传输(比如ASCII码将字母变成8位01串)，使之满足下面的某些性质：  编码速度快。 编码结果易于传输。 解码速度快。 极大化信息传输率(可以理解为用尽可能少的长度表示尽可能多的信息)。 检测&#x2F;纠正传输错误。  Basic ConceptsNotations code alphabet. 用于编码的字符集, 字符集中的元素成为">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-12-22T22:42:05.000Z">
+<meta property="article:modified_time" content="2025-11-05T02:41:00.476Z">
+<meta property="article:author" content="Zhenwei Liu">
+<meta property="article:tag" content="Algebra">
+<meta property="article:tag" content="Coding Theory">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://liuzw1998.github.io/2019/12/22/Coding-Theory-Linear-Code/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      processEscapes: true,
+      processEnvironments: true,
+      tags: 'ams'
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+  };
+</script>
+
+  <title>Coding Theory-Linear Code | Zhenwei's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zhenwei's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://liuzw1998.github.io/2019/12/22/Coding-Theory-Linear-Code/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Zhenwei Liu">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zhenwei's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Coding Theory-Linear Code
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-22 22:42:05" itemprop="dateCreated datePublished" datetime="2019-12-22T22:42:05+00:00">2019-12-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-11-05 02:41:00" itemprop="dateModified" datetime="2025-11-05T02:41:00+00:00">2025-11-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Coding-Theory/" itemprop="url" rel="index"><span itemprop="name">Coding Theory</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h3><p>编码的目的：将信息通过某种方式编码后传输(比如ASCII码将字母变成8位01串)，使之满足下面的某些性质：</p>
+<ul>
+<li>编码速度快。</li>
+<li>编码结果易于传输。</li>
+<li>解码速度快。</li>
+<li>极大化信息传输率(可以理解为用尽可能少的长度表示尽可能多的信息)。</li>
+<li>检测&#x2F;纠正传输错误。</li>
+</ul>
+<h3 id="Basic-Concepts"><a href="#Basic-Concepts" class="headerlink" title="Basic Concepts"></a>Basic Concepts</h3><h4 id="Notations"><a href="#Notations" class="headerlink" title="Notations"></a>Notations</h4><ul>
+<li><strong>code alphabet</strong>. 用于编码的字符集, 字符集中的元素成为<strong>code symbol</strong>, 一般用$q$表示字符集的大小。</li>
+<li>通常用字母<strong>C</strong>表示编码的集合，其中的元素成为<strong>codeword</strong>, 每个codeword可以看做是长度为$n$的向量, 向量的每个分量取值来自code alphabet。</li>
+<li><strong>(n, M) code</strong>. 长度为$n$, 元素个数为$M$的编码集合。</li>
+<li><strong>Information rate</strong>.  $\frac{\log_q{|C|}}{n}$</li>
+</ul>
+<h4 id="Hamming-Distance"><a href="#Hamming-Distance" class="headerlink" title="Hamming Distance"></a>Hamming Distance</h4><p>Hamming distance $d(x, y)$：逐位比较$x, y$的每一位, 有多少位不同, 即$d(x, y) &#x3D; \sum_{i&#x3D;1}^n[x_i\neq y_i]$。<br>最重要的一点，Hamming距离是满足三角形不等式的, 即$d(x, y) \leq d(x, z) +d(z, y)$.<br>证明: </p>
+<p>实际上Hamming distance对应向量的一范式($d(x, y)&#x3D;|x-y|<em>1$), 可以参考关于向量范式的三角形不等式的证明。不过我们没有定义两个码的减法操作。<br>因为<br>$$<br>d(x, y) &#x3D; \sum</em>{i&#x3D;1}^n[x_i\neq y_i]<br>$$<br>$$<br>d(x, z) +d(z, y)&#x3D;\sum_{i&#x3D;1}^n ([x_i\neq z_i] + [y_i \neq z_i])<br>$$<br>所以只要证明$[x_i \neq y_i] \leq [x_i\neq z_i] + [y_i \neq z_i]$.<br>如果$x_i &#x3D; y_i$显然成立。<br>如果$x_i \neq y_i$, 左边是1，右边不管$z_i$取0还是1，总有一个是1.<br>定义编码的距离</p>
+<p>$$<br>d(C) :&#x3D; \min_{x,y \in C}{d(x,y)}<br>$$</p>
+<h3 id="Linear-Code"><a href="#Linear-Code" class="headerlink" title="Linear Code"></a>Linear Code</h3><p>线性码就是说$C$是一个线性空间, $C$中的codeword满足线性空间的加法减法数乘的封闭性等。</p>
+<p>一般的, 我们默认取线性空间$V:&#x3D;F_q^n$, 也就是说$C$中的codeword是$n$维向量，向量的每一维取自有限域$F_q$. </p>
+<p>$C$是线性码当且仅当满足线性空间的八条性质。$\forall u, v, w\in C, \lambda, \mu \in F_q$ 满足:</p>
+<ol>
+<li>$u+v \in C$.</li>
+<li>$(u+v)+w &#x3D; u+(v+w)$.</li>
+<li>存在零元$0 \in C$, $0+v&#x3D;v+0&#x3D;v$.</li>
+<li>$u+v&#x3D;v+u$.</li>
+<li>$\lambda u \in C$.</li>
+<li>$\lambda(u+v) &#x3D; \lambda u + \lambda v$.</li>
+<li>$(\lambda \mu) u &#x3D; \lambda (\mu u)$.</li>
+<li>设$1$是$F_q$的单位元, $1u&#x3D;u$.</li>
+</ol>
+<p>另外有一个小定理，在之后经常会用到:</p>
+<p>设$C$是定义在$F_q$上的线性空间$V$的一个非空集合，$C$是 $V$的子空间当且仅当<br>$$<br>\forall \lambda,\mu \in F_q, u,v\in C, \lambda u+ \mu v \in C<br>$$ </p>
+<h4 id="Definition"><a href="#Definition" class="headerlink" title="Definition"></a>Definition</h4><ol>
+<li>定义$C$的正交补码$C^{\perp}:&#x3D; {v \in F_q^n, v\cdot u &#x3D; 0 \ \ \forall s \in C}$. 容易验证$C^{\perp}$也是线性码, 且$(C^{\perp})^{\perp} &#x3D; C$</li>
+<li>${&lt;}S{&gt;}$表示$S$生成的子空间。 用线性代数的知识很容易证明$dim({&lt;}S{&gt;})+dim(S^{\perp}) &#x3D; n$.</li>
+<li>定义某个codeword的重量$w(x)$为$x$非0的分量个数。容易证明$d(C):&#x3D; \min_{x \in C}{w(x)}$.<br>证明:  <ul>
+<li>若$d(C) &#x3D; d(x, y)$, 那么$x-y \in C$, 因此$d(C) &#x3D; w(x-y) \geq \min_{x \in C}{w(x)}$.</li>
+<li>反过来,  设$w(x_0) &#x3D; \min_{x \in C}{w(x)}$, $ d(C) \leq d(x_0, 0) &#x3D; w(x_0) &#x3D; \min_{x \in C}{w(x)}$.</li>
+</ul>
+</li>
+<li>用$[n, k]$-linear code表示长度为$n$, 维度为$k$的线性码。</li>
+</ol>
+<p>​    </p>
+<h4 id="Generator-Matrix-Check-Matrix"><a href="#Generator-Matrix-Check-Matrix" class="headerlink" title="Generator Matrix, Check Matrix"></a>Generator Matrix, Check Matrix</h4><ul>
+<li>线性码$C$的**generator matrix  **$G$: 大小为$k*n$, $k&#x3D;dim(C)$, $k$行恰好是$C$的一组基。</li>
+<li>线性码$C$的**check matrix ** $H$, 大小为$(n-k)*n, k &#x3D; dim(C)$, $n-k$行恰好是$C^{\perp}$的一组基。容易验证$HG^T &#x3D; GH^T &#x3D; 0$.</li>
+</ul>
+<p>下面是一些有用的性质，有些证明我个人认为比较简单，就略去了。</p>
+<p><strong>性质1:</strong><br>$v \in C^{\perp}  \Longleftrightarrow vG^T &#x3D; 0$.<br>简单地说，就是一个向量和$C$中所有向量点积为0当且仅当它和一组基里的所有向量点积为0.<br>同理有$v \in C  \Longleftrightarrow vH^T &#x3D; 0$. </p>
+<p><strong>性质2：</strong><br>一个$(n-k)*n$的矩阵$H$是check matrix当且仅当$H$的行线性无关，并且$HG^T &#x3D; 0$.</p>
+<p><strong>性质3：</strong><br>假设$H$是线性码$C$的check matrix。$d(C) &#x3D; d$当且仅当$H$的任意$d-1$列线性无关, 存在$d$列线性相关。<br>证明：<br>设$h_i$表示$H$的第$i$, $v\in C$, $w(v)&#x3D;e$,  ${i_1, i_2, \cdots, i_e}$是$v$非零分量的下标。<br>根据性质1有$0 &#x3D; vH^T &#x3D; \sum_{j&#x3D;1}^e v_{i_j}h_{i_j}^T$, 这意味着${h_{i_j}}$是线性相关的。<br>因为$d(C) &#x3D; \min_{v \in C}{w(v)}$, 因此$H$存在$d(C)$列线性相关.<br>假设$H$的第 ${i_1, i_2, \cdots, i_e}$列线性无关,  即存在一组数${a_j}$, $\sum_{j&#x3D;1}^e a_jh_{i_j} &#x3D; 0$. 容易构造一个向量$v$, 使$v_{i_j} &#x3D; a_j$, 其它分量为0. $v \in C, w(v) &#x3D; e$.   由此可以推出$H$的任意少于$d(C)$列都是线性无关的, 否则按我们的方法就可以构造出相应的$v \in C$ , $w(v) \lt d(C)$.</p>
+<p>反过来，假设$H$的任意$d-1$列线性无关, 存在$d$列线性相关。因为任意$d(C)-1$列线性无关, 所以$d(C)-1 \leq d-1$, 即$d(C)\leq d$.  因为存在$d(C)$列线性相关，所以$d(C) \gt d-1$, 即$d(C) \geq d$.</p>
+<h4 id="Encoding-and-Decoding-with-a-Linear-Code"><a href="#Encoding-and-Decoding-with-a-Linear-Code" class="headerlink" title="Encoding and Decoding with a Linear Code"></a>Encoding and Decoding with a Linear Code</h4><h5 id="Encoding"><a href="#Encoding" class="headerlink" title="Encoding"></a>Encoding</h5><p>取$k*n$的generator matrix $G$, 定义线性码的加密是映射$F^k_q \rightarrow F_q^n$, 将$k$维向量$u$映射到$n$维向量$uG$. 可以看做是用$G$的各行的线性组合。 </p>
+<p>值得一提的是，一般取$G&#x3D;(I|X)$这样的矩阵(<strong>generator matrix in standard form</strong>)。这样$uG &#x3D; (u, uX)$, 前面$k$位就是原来的信息(<strong>message digits</strong>)，后面$n-k$位是冗余信息(<strong>check digits</strong>)，可以用来修正传输时候的噪声。注意编码学不同于密码学，密码学注重信息的安全性，而编码学关注去除传输时出现的噪声 (某些位在传输过程中出现了变化)。</p>
+<h5 id="Decoding"><a href="#Decoding" class="headerlink" title="Decoding"></a>Decoding</h5><p>解码稍微要复杂一些，因为要考虑到传输过程中出现的错误。<br>假设传输的是$u$, 收到的是$v$.  定义错误向量$e &#x3D; v-u$。 根据最近邻居解码原则, 我们认为$e$是使得$v+e\in C$并且$w(e)$最小的(出错的位数最少)。<br>在这个原则下，提出下面的算法。</p>
+<p><strong>算法1：</strong></p>
+<p>预处理出所有的coset(涉及一些抽象代数),  即形如$u+C$的集合, $u \in F_q^n$.<br>$e &#x3D; v-u \in v + C$, 因此我们查表找到$v$所在的coset中权值最小的向量就是$e$.利用$u &#x3D; v-e$复原。<br>这样做需要很大的空间，因为得把$F_q^n$里$q^n$这么多向量全部存下来，只有当$q^n$比较小的时候才可行。</p>
+<p><strong>算法2:</strong></p>
+<p>终于轮到我们之前提了半天的check matrix $H$出场了。<br>因为$\forall v \in u+C, vH^T &#x3D; (u+w)H^T &#x3D; uH^T+vH^T &#x3D; uH^T$. 也就是说，同一个coset里的向量，右乘上$H^T$的结果是一样的。<br>所以我们只要保存每个coset权值最小的向量, 以及coset中的元素右乘$H^T$的结果就可以用算法1的方法解码。存储的空间之和coset个数有关，而根据每个coset的大小都是$q^k$, coset的个数就是$q^{n-k}$，比算法1的$q^n $要好。<br>这种算法称为<strong>Syndrome decoding</strong>, $u$的syndrome记作$S(u):&#x3D; uH^T$。</p>
+<h4 id="Weight-Distribution"><a href="#Weight-Distribution" class="headerlink" title="Weight Distribution"></a>Weight Distribution</h4><p>$A_i :&#x3D;  |{ u \mid wt(u)&#x3D;i }|$.<br>$W_c(x, y) &#x3D; \sum_{i&#x3D;0}^n{A_ix^iy^{n-i}}$.<br><a target="_blank" rel="noopener" href="https://www.encyclopediaofmath.org/index.php/MacWilliams_identities">MacWilliams’ Identity</a><br>$W_{C^{\perp}}(x, y) &#x3D; \frac{1}{|C|}W_C(x+(q-1)y,x-y)$<br>当$q&#x3D;2$时:<br>$W_{C^{\perp}}(x, y) &#x3D; \frac{1}{|C|}W_C(x+y,x-y)$</p>
+<h4 id="Exercise"><a href="#Exercise" class="headerlink" title="Exercise"></a>Exercise</h4><p>记录一些我个人认为比较有趣的课后练习题(可能我的答案是错误的).</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Algebra/" rel="tag"># Algebra</a>
+              <a href="/tags/Coding-Theory/" rel="tag"># Coding Theory</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/10/19/Approximation-Algorithm-9-The-Maxcut-Problem/" rel="prev" title="Approximation Algorithm(9)-The Maxcut Problem">
+      <i class="fa fa-chevron-left"></i> Approximation Algorithm(9)-The Maxcut Problem
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/26/Coding-Theory-Some-Bounds/" rel="next" title="Coding Theory-Some Bounds">
+      Coding Theory-Some Bounds <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Introduction"><span class="nav-number">1.</span> <span class="nav-text">Introduction</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Basic-Concepts"><span class="nav-number">2.</span> <span class="nav-text">Basic Concepts</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Notations"><span class="nav-number">2.1.</span> <span class="nav-text">Notations</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Hamming-Distance"><span class="nav-number">2.2.</span> <span class="nav-text">Hamming Distance</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Linear-Code"><span class="nav-number">3.</span> <span class="nav-text">Linear Code</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Definition"><span class="nav-number">3.1.</span> <span class="nav-text">Definition</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Generator-Matrix-Check-Matrix"><span class="nav-number">3.2.</span> <span class="nav-text">Generator Matrix, Check Matrix</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Encoding-and-Decoding-with-a-Linear-Code"><span class="nav-number">3.3.</span> <span class="nav-text">Encoding and Decoding with a Linear Code</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Encoding"><span class="nav-number">3.3.1.</span> <span class="nav-text">Encoding</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Decoding"><span class="nav-number">3.3.2.</span> <span class="nav-text">Decoding</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Weight-Distribution"><span class="nav-number">3.4.</span> <span class="nav-text">Weight Distribution</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Exercise"><span class="nav-number">3.5.</span> <span class="nav-text">Exercise</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Zhenwei Liu</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenwei Liu</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>

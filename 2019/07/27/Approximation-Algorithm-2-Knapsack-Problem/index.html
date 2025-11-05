@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 8.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"liuzw1998.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Week 2: The Knapsack Problem  Problem Definition:$N$件物品，每件物品有一个体积${s_i}$和价值${v_i}$, 现在有一个容量是$B$的背包，要选一些物品装进背包，使得价值之和最大。约定不会有体积超过背包容积的物体。 已有知识：各种背包问题的动态规划做法。 课程内容： Special Case 1：物品的体积等于价值. 也就是说，要将背包装得">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Approximation Algorithm(2)-The Knapsack Problem">
+<meta property="og:url" content="https://liuzw1998.github.io/2019/07/27/Approximation-Algorithm-2-Knapsack-Problem/index.html">
+<meta property="og:site_name" content="Zhenwei&#39;s Blog">
+<meta property="og:description" content="Week 2: The Knapsack Problem  Problem Definition:$N$件物品，每件物品有一个体积${s_i}$和价值${v_i}$, 现在有一个容量是$B$的背包，要选一些物品装进背包，使得价值之和最大。约定不会有体积超过背包容积的物体。 已有知识：各种背包问题的动态规划做法。 课程内容： Special Case 1：物品的体积等于价值. 也就是说，要将背包装得">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-07-27T18:36:41.000Z">
+<meta property="article:modified_time" content="2025-11-05T02:41:00.469Z">
+<meta property="article:author" content="Zhenwei Liu">
+<meta property="article:tag" content="Approximation Algorithms">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://liuzw1998.github.io/2019/07/27/Approximation-Algorithm-2-Knapsack-Problem/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      processEscapes: true,
+      processEnvironments: true,
+      tags: 'ams'
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+  };
+</script>
+
+  <title>Approximation Algorithm(2)-The Knapsack Problem | Zhenwei's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zhenwei's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://liuzw1998.github.io/2019/07/27/Approximation-Algorithm-2-Knapsack-Problem/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Zhenwei Liu">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zhenwei's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Approximation Algorithm(2)-The Knapsack Problem
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-07-27 18:36:41" itemprop="dateCreated datePublished" datetime="2019-07-27T18:36:41+00:00">2019-07-27</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-11-05 02:41:00" itemprop="dateModified" datetime="2025-11-05T02:41:00+00:00">2025-11-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Algorithm/" itemprop="url" rel="index"><span itemprop="name">Algorithm</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Algorithm/Combinatorial-Optimization/" itemprop="url" rel="index"><span itemprop="name">Combinatorial Optimization</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>Week 2: The Knapsack Problem</strong> </p>
+<h4 id="Problem-Definition"><a href="#Problem-Definition" class="headerlink" title="Problem Definition:"></a>Problem Definition:</h4><p>$N$件物品，每件物品有一个体积${s_i}$和价值${v_i}$, 现在有一个容量是$B$的背包，要选一些物品装进背包，使得价值之和最大。约定不会有体积超过背包容积的物体。</p>
+<h4 id="已有知识："><a href="#已有知识：" class="headerlink" title="已有知识："></a>已有知识：</h4><p>各种背包问题的动态规划做法。</p>
+<h4 id="课程内容："><a href="#课程内容：" class="headerlink" title="课程内容："></a>课程内容：</h4><ul>
+<li><strong>Special Case 1</strong>：物品的体积等于价值. 也就是说，要将背包装得尽可能满。<br>  贪心做法： 按体积从大到小选。因为有物品装不进背包的时候，背包至少是half-full的，所以近似度是2.</li>
+<li><strong>Special Case 2</strong>: 物品价值都比较小. 考虑动态规划，$dp[i][v]$表示考虑前i个物品，拼出价值$v$，需要的最少体积。</li>
+<li>当物品价值较大的时候，考虑做一个Scaling。将所有物品的价值乘上一个放缩系数$\alpha$，下取整后，再做动态规划。<br>  <strong>Analysis</strong>:<br>  设放缩后的最优解集合是$I$, 实际最优解集合是$I^{*}$<br>  根据放缩的方法有$v_i’ &#x3D; \lfloor \alpha v_i \rfloor$, $I^{*}$是最优解，所有又有$\sum\limits_{i \in I}{v_i’} \geq \sum\limits_{i \in I^{*}}{v_i’}$<br>  因为$I$是放缩后的最优解，所以有$\sum\limits_{i \in I}{\lfloor \alpha v_i \rfloor} \geq \sum\limits_{i \in I^{*}}{\lfloor \alpha v_i \rfloor}$<br>  因此有$\sum\limits_{i \in I}{\alpha v_i} \geq \sum\limits_{i \in I}{\lfloor \alpha v_i \rfloor} \geq \sum\limits_{i \in I^{*}}{\lfloor \alpha v_i \rfloor}  \geq \sum\limits_{i \in I^{*}}{(\alpha v_i - 1)}  \geq \sum\limits_{i \in I^{*}}{\alpha v_i} - N &#x3D; \alpha OPT - N$<br>  即$\sum\limits_{i \in I}{v_i} \geq OPT - \frac{N}{\alpha}$<br>  如果我们把原来的最大价值$\max{v_i}$放缩到$M$($M &#x3D; \alpha \max{v_i}$), 则$\alpha &#x3D; \frac{M}{\max{v_i}}$<br>  所有有$\sum\limits_{i \in I}{v_i} \geq OPT - \frac{N \max{v_i}}{M}$.<br>  因为约定不会有体积超过背包容量的物体，所以$OPT \geq \max{v_i}$.<br>  进一步放缩:$\sum\limits_{i \in I}{v_i} \geq OPT - \frac{N \max{v_i}}{M} \geq OPT - \frac{N}{M} OPT$.<br>  综上得到$\sum\limits_{i \in I}{v_i} \geq (1-\frac{N}{M})OPT$<br>  如果令$M &#x3D; 100N$，那么就有$\sum\limits_{i \in I}{v_i} \geq 0.99OPT$。<br>  动态规划的时间复杂度是$O(N^2M)$, 可以通过取合适的$M$获得效率和近似比的一个trade off。</li>
+</ul>
+<h4 id="练习题："><a href="#练习题：" class="headerlink" title="练习题："></a>练习题：</h4><ul>
+<li>Q1：分析如下背包问题算法：<ol>
+<li>将物品按价值密度$\frac{v_i}{s_i}$从大到小排序。</li>
+<li>找到最小的$L$，使得$\sum\limits_{i&#x3D;1}^{L-1} {s_i} \leq B,  \sum\limits_{i&#x3D;1}^{L}{s_i} \gt B$</li>
+<li>选前$L-1$个物品，或者只选第$L$个物品，这两种方案取较优者。</li>
+</ol>
+<ul>
+<li><strong>Approximation Radio</strong>：<br>  感觉第三步选取两种方案的较优者是点睛之笔。<ul>
+<li>$W &#x3D; max(\sum\limits_{i&#x3D;1}^{L-1} {v_i}, v_L ) \geq \frac{1}{2} \sum\limits_{i&#x3D;1}^{L} {v_i}$。</li>
+<li>因为选的是价值密度最大的$L$个，这$L$个物品体积加起来又超过了背包容量$B$, 所以有$\sum\limits_{i&#x3D;1}^{L} {v_i} \gt OPT$。这一步感觉挺显然的，但是水平有限，我给不出很严谨的证明：可以从积分的角度来想，物品的价值和可以表示为$\int_{0}^{B}density(t)dt$，而这种方案使得对任意$t，density(t)$都是最大的.</li>
+<li>综上可以得出$max(\sum\limits_{i&#x3D;1}^{L-1} {v_i}, v_L ) \geq \frac{1}{2} OPT$.</li>
+<li>ps: 原题是要证明当物品个数趋于无穷多的时候近似比是2，但我的证明似乎和物品个数无关。。。</li>
+</ul>
+</li>
+<li><strong>Tightness</strong>.<br>  比如3个物品，体积分别是$\frac{B}{2}+1, \frac{B}{2}, \frac{B}{2}$, 密度分别是$1+\epsilon, 1, 1$<br>  按照该算法，会选第一个物品，总价值是$(\frac{B}{2}+1)(1+\epsilon)$,  而如果选第2和第3个物品， 可以获得$B$的价值。<br>  比一下是$(\frac{1}{2}+\frac{1}{B}) * (1+\epsilon)$, 当$B$趋向于无穷$\epsilon$趋向于无穷小的时候，会达到$\frac{1}{2}$.</li>
+</ul>
+</li>
+<li>Q2: 一个简单的动态规划题, 没啥好讲的。</li>
+</ul>
+<h4 id="互评作业："><a href="#互评作业：" class="headerlink" title="互评作业："></a>互评作业：</h4><ul>
+<li><strong>Problem</strong>： 假设背包问题允许将物品切成小块放入背包，证明如果按价值密度$\frac{v_i}{s_i}$从大到小选取物品, 一定能达到最优解。</li>
+<li><strong>Proof</strong>： 比较显然，只要证明不论什么时候，选取当前剩余物品中价值密度最大的一定最优。 用反证法：假设最优解不取当前价值密度最大的物品$a$，那么一定取了另一个价值密度比较小的物品$b$。把少量的$b$换成$a$可以获得更大的价值, 导致矛盾。</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Approximation-Algorithms/" rel="tag"># Approximation Algorithms</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/07/26/Approximation-Algorithm-1-Vertex-Cover/" rel="prev" title="Approximation Algorithm(1)-Vertex Cover">
+      <i class="fa fa-chevron-left"></i> Approximation Algorithm(1)-Vertex Cover
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/07/28/Approximation-Algorithm-3-The%20Binpacking%20Problem/" rel="next" title="Approximation Algorithm(3)-The Binpacking Problem">
+      Approximation Algorithm(3)-The Binpacking Problem <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#Problem-Definition"><span class="nav-number">1.</span> <span class="nav-text">Problem Definition:</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B7%B2%E6%9C%89%E7%9F%A5%E8%AF%86%EF%BC%9A"><span class="nav-number">2.</span> <span class="nav-text">已有知识：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%BE%E7%A8%8B%E5%86%85%E5%AE%B9%EF%BC%9A"><span class="nav-number">3.</span> <span class="nav-text">课程内容：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0%E9%A2%98%EF%BC%9A"><span class="nav-number">4.</span> <span class="nav-text">练习题：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BA%92%E8%AF%84%E4%BD%9C%E4%B8%9A%EF%BC%9A"><span class="nav-number">5.</span> <span class="nav-text">互评作业：</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Zhenwei Liu</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenwei Liu</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>

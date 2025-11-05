@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 8.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"liuzw1998.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="DuckDB 的排序算法概览在最新发布的 DuckDB v1.4.0 中，作者时隔 4 年再次重新实现了排序算法。在更早的更新中，作者使用了新的内存页布局 (page layout) 并成功应用于 hash join 和 hash aggregation 等算子，以提高内存不足场景下的查询效率。为了适配新的内存页布局，作者重新实现了排序算法。 新的排序算法有以下几个优势：  显著提升有序数据的排序">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DuckDB 的排序算法">
+<meta property="og:url" content="https://liuzw1998.github.io/2025/11/04/duckdb_sorting/index.html">
+<meta property="og:site_name" content="Zhenwei&#39;s Blog">
+<meta property="og:description" content="DuckDB 的排序算法概览在最新发布的 DuckDB v1.4.0 中，作者时隔 4 年再次重新实现了排序算法。在更早的更新中，作者使用了新的内存页布局 (page layout) 并成功应用于 hash join 和 hash aggregation 等算子，以提高内存不足场景下的查询效率。为了适配新的内存页布局，作者重新实现了排序算法。 新的排序算法有以下几个优势：  显著提升有序数据的排序">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://liuzw1998.github.io/2025/11/04/duckdb_sorting/layout.svg">
+<meta property="og:image" content="https://liuzw1998.github.io/2025/11/04/duckdb_sorting/block_iterator.svg">
+<meta property="og:image" content="https://liuzw1998.github.io/2025/11/04/duckdb_sorting/merge_path.png">
+<meta property="og:image" content="https://liuzw1998.github.io/2025/11/04/duckdb_sorting/k_way_merge.svg">
+<meta property="article:published_time" content="2025-11-04T18:00:00.000Z">
+<meta property="article:modified_time" content="2025-11-05T02:41:00.477Z">
+<meta property="article:author" content="Zhenwei Liu">
+<meta property="article:tag" content="Database System">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://liuzw1998.github.io/2025/11/04/duckdb_sorting/layout.svg">
+
+<link rel="canonical" href="https://liuzw1998.github.io/2025/11/04/duckdb_sorting/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      processEscapes: true,
+      processEnvironments: true,
+      tags: 'ams'
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+  };
+</script>
+
+  <title>DuckDB 的排序算法 | Zhenwei's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zhenwei's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://liuzw1998.github.io/2025/11/04/duckdb_sorting/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Zhenwei Liu">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zhenwei's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DuckDB 的排序算法
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2025-11-04 18:00:00" itemprop="dateCreated datePublished" datetime="2025-11-04T18:00:00+00:00">2025-11-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-11-05 02:41:00" itemprop="dateModified" datetime="2025-11-05T02:41:00+00:00">2025-11-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Algorithm/" itemprop="url" rel="index"><span itemprop="name">Algorithm</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Algorithm/Database-System/" itemprop="url" rel="index"><span itemprop="name">Database System</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="DuckDB-的排序算法"><a href="#DuckDB-的排序算法" class="headerlink" title="DuckDB 的排序算法"></a>DuckDB 的排序算法</h3><h4 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h4><p>在最新发布的 DuckDB v1.4.0 中，作者时隔 4 年再次重新实现了排序算法。在更早的更新中，作者使用了<a target="_blank" rel="noopener" href="https://duckdb.org/2024/03/29/external-aggregation.html">新的内存页布局 (page layout)</a> 并成功应用于 <a target="_blank" rel="noopener" href="https://github.com/duckdb/duckdb/pull/4189">hash join</a> 和 <a target="_blank" rel="noopener" href="https://github.com/duckdb/duckdb/pull/7931">hash aggregation</a> 等算子，以提高内存不足场景下的查询效率。为了<strong>适配新的内存页布局</strong>，作者重新实现了排序算法。</p>
+<p>新的排序算法有以下几个优势：</p>
+<ul>
+<li>显著提升<strong>有序数据</strong>的排序效率（约快10倍），<strong>随机数据</strong>的排序效率也快了近2倍。</li>
+<li>针对内存无法容纳的大表查询，<strong>减少了I&#x2F;O和数据的移动</strong>，使得整体排序时间减少到原来的$\frac{1}{3} \sim \frac{1}{2}$。</li>
+<li>算法的<strong>多线程并行性</strong>提高：尽管在单线程的场景下性能略微下降，但随着线程数目增多，排序效率获得大幅提升, 并逐渐超过之前版本。</li>
+<li>增加实现了 SQL 的 <code>create_sort_key</code> 函数。</li>
+</ul>
+<p>算法的基本框架仍然基于归并排序，具体实现的主要变化如下：</p>
+<ul>
+<li>DuckDB 使用固定大小的排序键。在过去版本中，其大小在<strong>执行时</strong>才会被计算。当前版本使用了<strong>新的排序键存储结构</strong>，在<strong>编译时</strong>就可以知道其大小。</li>
+<li>使用了标准的256KiB block size（旧版本使用了不定大小的 block size）。通过实现 <code>std::iterator</code> ，允许有序块 (sorted runs) <strong>使用非连续内存</strong>（多个 pages）。这样不仅可以产生<strong>更大的有序块</strong>（用于提高后续步骤的效率），还可以直接调用 C++ 模板库的排序算法。 </li>
+<li>有序块的排序<strong>组合使用3种排序算法</strong>（之前仅用基数排序）：先用 <a target="_blank" rel="noopener" href="https://github.com/Morwenn/vergesort">Vergesort</a> 处理（几乎）有序的数据，再用 <a target="_blank" rel="noopener" href="https://github.com/skarupke/ska_sort">Ska Sort</a> （基数排序的变种）将数据按排序键最高 64 位排序&#x2F;划分，最后再使用快速排序 <a target="_blank" rel="noopener" href="https://github.com/orlp/pdqsort">Pattern-defeating quicksort</a>。 </li>
+<li>有序块的合并从之前的 <strong>2-way merge</strong> 改为使用 <strong>k-way merge</strong> （k是可配置参数）；将之前的 <strong>2-way merge path</strong> 推广到 <strong>k-way merge path</strong>。在之前的版本中，算法会完全计算出整个排序后的序列；新算法会逐渐计算排序结果的前缀并可以随时终止，这有利于<code>ORDER BY ... LIMIT ...</code>类型的查询。</li>
+</ul>
+<h4 id="新的内存页布局-page-layout"><a href="#新的内存页布局-page-layout" class="headerlink" title="新的内存页布局 (page layout)"></a>新的内存页布局 (page layout)</h4><p>DuckDB的内存页布局中，每一行可能会存储指向不定长数据（比如字符串）的内存指针。但是当指针指向的数据被写入磁盘后，指向的地址不再有意义，即使数据可能会被重新载入内存，但在内存中的地址也会发生变化。</p>
+<p>在过去的版本中，如果数据被写入磁盘，不仅会导致<strong>大量内存指针的重计算</strong>，还需要<strong>手动管理新地址</strong>，容易出错。新版本采用如下图所示的<a target="_blank" rel="noopener" href="https://duckdb.org/2024/03/29/external-aggregation.html">页布局</a>。</p>
+<img src="/2025/11/04/duckdb_sorting/layout.svg" class="" title="layout 示意图">
+
+
+<p>Row Page 会存储额外的 MetaData，用以记录存储实际数据的 Var Page 的地址信息。当对应的 Var Page 被写入磁盘时，指针失效。但当它再次被载入内存的时候，可以快速地通过 MetaData 计算出新的指针地址。该方式的优势是用lazy的方式更新指针（可以通过 MetaData 检查指针是否已失效），减少了指针的重计算。</p>
+<h4 id="内存里排序得到有序块-sorted-runs"><a href="#内存里排序得到有序块-sorted-runs" class="headerlink" title="内存里排序得到有序块 (sorted runs)"></a>内存里排序得到有序块 (sorted runs)</h4><h5 id="排序算法"><a href="#排序算法" class="headerlink" title="排序算法"></a>排序算法</h5><p>新的排序实现<strong>组合使用了3种排序算法</strong>（之前仅用基数排序）。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/Morwenn/vergesort">Vergesort</a> 用于检测和合并数据的有序段。当数据几乎有序时（比如时序数据），表现比较好。</li>
+<li>如果 Vergesort 没有检测到数据的有序性，转为使用 <a target="_blank" rel="noopener" href="https://github.com/skarupke/ska_sort">Ska Sort</a> （基数排序的变种）将数据按排序键最高 64 位排序&#x2F;分类。</li>
+<li>当上面的 Ska Sort 将数据根据最高 64 位 划分后，如果数据仍然无序或者当前划分数据规模已经较小，使用快速排序 <a target="_blank" rel="noopener" href="https://github.com/orlp/pdqsort">Pattern-defeating quicksort</a>。</li>
+</ul>
+<h5 id="具体实现细节"><a href="#具体实现细节" class="headerlink" title="具体实现细节"></a>具体实现细节</h5><p>DuckDB 使用<strong>大小固定的排序键</strong>。在最新的版本中，作者使用如下结构体<code>struct</code>来保存整合后的键值（<strong>Normalized Key</strong>： 即将多个关键字压缩成128位01串， 比较时可以利用<code>memcpy</code>。 如果128位不够，额外保存数据指针 <code>payload</code>）。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">FixedSortKeyNoPayload</span> &#123;</span><br><span class="line">    <span class="type">uint64_t</span> part0;</span><br><span class="line">    <span class="type">uint64_t</span> part1;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">FixedSortKeyPayload</span> &#123;</span><br><span class="line">    <span class="type">uint64_t</span> part0;</span><br><span class="line">    <span class="type">uint64_t</span> part1;</span><br><span class="line">    <span class="type">data_ptr_t</span> payload;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>在之前的版本中，每个有序块单独存放在一个页 (page) 中。现在作者希望使用<strong>更大的有序块</strong>，于是通过实现 <code>std::iterator</code> ，允许有序块 (sorted run) <strong>使用非连续内存</strong>（多个 pages， 如下图所示）。因为键值大小恒定，每个页存储的键数量也相同，因此可以用整除和模运算计算出某条键存储在哪一页哪一行（作者使用了<a target="_blank" rel="noopener" href="https://github.com/lemire/fastmod">fastmod</a>)。</p>
+<img src="/2025/11/04/duckdb_sorting/block_iterator.svg" class="" title="block iterator 示意图">
+
+
+<p>通过<code>std::iterator</code>，可以把多个页的数据看做一个连续数组（支持随机访问），这使得排序的时候可以直接调用 C++ 库自带的排序算法。</p>
+<h4 id="合并有序块"><a href="#合并有序块" class="headerlink" title="合并有序块"></a>合并有序块</h4><h5 id="之前版本的2路归并-cascade-2-way-merge-sort"><a href="#之前版本的2路归并-cascade-2-way-merge-sort" class="headerlink" title="之前版本的2路归并 (cascade 2-way merge sort)"></a>之前版本的2路归并 (<a target="_blank" rel="noopener" href="https://duckdb.org/2021/08/27/external-sorting.html">cascade 2-way merge sort</a>)</h5><p>动机： 当有序块的个数较多的时候，多个线程可以并行进行合并；但是当有序块个数少于线程数的时候，为了提升效率，必须让多个线程一起参与两个有序块的合并。<strong>问题在于如何将两个有序块合并的任务划分成可并行子任务</strong>。为此作者复现了论文 <a target="_blank" rel="noopener" href="https://arxiv.org/pdf/1406.2628.pdf">Merge Path</a>。</p>
+<p>算法的思想如下图所示。考虑合并两个有序数组A和B, 橙色的折线反映了合并的过程：横线表示元素来自B数组，竖线表示元素来自A数组。可以根据线程数量将橙色折线分成若干均匀段，每一段对应一个独立的合并任务。橙色折线的拐点可以用二分搜索计算出来。</p>
+<img src="/2025/11/04/duckdb_sorting/merge_path.png" class="" title="merge path 示意图">
+
+
+<h5 id="新版本的k路归并"><a href="#新版本的k路归并" class="headerlink" title="新版本的k路归并"></a>新版本的k路归并</h5><p>新版本将之前的多线程2路归并推广到k路 （之前产生更长的 sorted runs 对k路归并更友好）。如下图所示，假设我们需要合并$k$个有序块，并将合并后结果的前$\ell$个数存放到 Output Chunk 1 中。我们同样可以用二分搜索找出每个有序块的前面多少个元素属于合并结果的前$\ell$个（对应图中的每个 Sorted Run 里的横线）。这一部分（横线上方的元素）可以分给同一个线程来合并。 </p>
+<p>以此类推，可以继续计算合并结果的的下$\ell$个数 （对应下一个 Output Chunk 2），分别对应每个块的哪一段，交给另一个线程来合并。通过这样的划分方法，我们可以把合并$k$个有序块的任务多线程并行化。</p>
+<img src="/2025/11/04/duckdb_sorting/k_way_merge.svg" class="" title="k-way merge 示意图">
+
+
+
+<h4 id="实验结果"><a href="#实验结果" class="headerlink" title="实验结果"></a>实验结果</h4><p>测试环境： M1 Max MacBook Pro, 10 线程 64 GB 内存</p>
+<p>作者先测试了对单列整数的排序，分别考虑了递增、递减、随机数据以及10m, 100m, 1000m 的数据规模。结果如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">Table</th>
+<th align="center">Rows [Millions]</th>
+<th align="center">Old [s]</th>
+<th align="center">New [s]</th>
+<th align="center">Speedup vs. Old [x]</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">Ascending</td>
+<td align="center">10</td>
+<td align="center">0.110</td>
+<td align="center"><strong>0.033</strong></td>
+<td align="center">3.333</td>
+</tr>
+<tr>
+<td align="center">Ascending</td>
+<td align="center">100</td>
+<td align="center">0.912</td>
+<td align="center"><strong>0.181</strong></td>
+<td align="center">5.038</td>
+</tr>
+<tr>
+<td align="center">Ascending</td>
+<td align="center">1000</td>
+<td align="center">15.302</td>
+<td align="center"><strong>1.475</strong></td>
+<td align="center">10.374</td>
+</tr>
+<tr>
+<td align="center">Descending</td>
+<td align="center">10</td>
+<td align="center">0.121</td>
+<td align="center"><strong>0.034</strong></td>
+<td align="center">3.558</td>
+</tr>
+<tr>
+<td align="center">Descending</td>
+<td align="center">100</td>
+<td align="center">0.908</td>
+<td align="center"><strong>0.207</strong></td>
+<td align="center">4.386</td>
+</tr>
+<tr>
+<td align="center">Descending</td>
+<td align="center">1000</td>
+<td align="center">15.789</td>
+<td align="center"><strong>1.712</strong></td>
+<td align="center">9.222</td>
+</tr>
+<tr>
+<td align="center">Random</td>
+<td align="center">10</td>
+<td align="center">0.120</td>
+<td align="center"><strong>0.094</strong></td>
+<td align="center">1.276</td>
+</tr>
+<tr>
+<td align="center">Random</td>
+<td align="center">100</td>
+<td align="center">1.028</td>
+<td align="center"><strong>0.587</strong></td>
+<td align="center">1.751</td>
+</tr>
+<tr>
+<td align="center">Random</td>
+<td align="center">1000</td>
+<td align="center">17.554</td>
+<td align="center"><strong>6.493</strong></td>
+<td align="center">2.703</td>
+</tr>
+</tbody></table>
+<p>可以看到，新的排序算法实现对于有序数据排序效率快了近10倍，对随机数据快了近2倍。</p>
+<p>接下来，作者对一个有15列的宽表按某一列进行排序，分别取 6m, 60m, 600m 行。<strong>当数据规模达到 600m 的时候，数据无法完全存储于内存</strong>。可以发现，无论数据能否完全存在内存，新的算法实现性能都优于老版本。尤其是当内存无法容纳所有数据时，排序速度是原来的3倍。</p>
+<table>
+<thead>
+<tr>
+<th align="center">Table</th>
+<th align="center">SF</th>
+<th align="center">Old [s]</th>
+<th align="center">New [s]</th>
+<th align="center">Speedup vs. Old [x]</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">TPC-H SF 1 lineitem by l_shipdate</td>
+<td align="center">1</td>
+<td align="center">0.328</td>
+<td align="center"><strong>0.189</strong></td>
+<td align="center">1.735</td>
+</tr>
+<tr>
+<td align="center">TPC-H SF 10 lineitem by l_shipdate</td>
+<td align="center">10</td>
+<td align="center">3.353</td>
+<td align="center"><strong>1.520</strong></td>
+<td align="center">2.205</td>
+</tr>
+<tr>
+<td align="center">TPC-H SF 100 lineitem by l_shipdate</td>
+<td align="center">100</td>
+<td align="center">273.982</td>
+<td align="center"><strong>80.919</strong></td>
+<td align="center">3.385</td>
+</tr>
+</tbody></table>
+<p>最后，作者测试了新算法的多线程并行情况，如下表所示。可以看到，单线程时旧版本反而快了30%，这是因为两者在实现基数排序的时候的差异。旧版本使用 <strong>out-of-place Least Significant Digit (LSD) radix sort</strong>，速度更快，但占用<strong>更多内存</strong>；新版本使用 <strong>in-place Most Significant Digit radix sort</strong>，原地排序占用<strong>更少内存</strong>。但是当线程数增加到2，二者时间就几乎没有差异。随着线程数继续增加，新版本算法逐渐发挥出优势。</p>
+<table>
+<thead>
+<tr>
+<th align="center">Threads</th>
+<th align="center">Old [s]</th>
+<th align="center">New [s]</th>
+<th align="center">Old Speedup vs. 1 Thread [x]</th>
+<th align="center">New Speedup vs. 1 Thread [x]</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">1</td>
+<td align="center"><strong>3.240</strong></td>
+<td align="center">4.234</td>
+<td align="center"><strong>1.000</strong></td>
+<td align="center"><strong>1.000</strong></td>
+</tr>
+<tr>
+<td align="center">2</td>
+<td align="center"><strong>2.121</strong></td>
+<td align="center">2.193</td>
+<td align="center">1.527</td>
+<td align="center"><strong>1.930</strong></td>
+</tr>
+<tr>
+<td align="center">4</td>
+<td align="center">1.401</td>
+<td align="center"><strong>1.216</strong></td>
+<td align="center">2.312</td>
+<td align="center"><strong>3.481</strong></td>
+</tr>
+<tr>
+<td align="center">8</td>
+<td align="center">0.920</td>
+<td align="center"><strong>0.654</strong></td>
+<td align="center">3.521</td>
+<td align="center"><strong>6.474</strong></td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Database-System/" rel="tag"># Database System</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/02/15/combinatorial-optimization-matroid/" rel="prev" title="Combinatorial Optimization-Matroid">
+      <i class="fa fa-chevron-left"></i> Combinatorial Optimization-Matroid
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#DuckDB-%E7%9A%84%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95"><span class="nav-number">1.</span> <span class="nav-text">DuckDB 的排序算法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A6%82%E8%A7%88"><span class="nav-number">1.1.</span> <span class="nav-text">概览</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%96%B0%E7%9A%84%E5%86%85%E5%AD%98%E9%A1%B5%E5%B8%83%E5%B1%80-page-layout"><span class="nav-number">1.2.</span> <span class="nav-text">新的内存页布局 (page layout)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E9%87%8C%E6%8E%92%E5%BA%8F%E5%BE%97%E5%88%B0%E6%9C%89%E5%BA%8F%E5%9D%97-sorted-runs"><span class="nav-number">1.3.</span> <span class="nav-text">内存里排序得到有序块 (sorted runs)</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95"><span class="nav-number">1.3.1.</span> <span class="nav-text">排序算法</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%85%B7%E4%BD%93%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82"><span class="nav-number">1.3.2.</span> <span class="nav-text">具体实现细节</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%90%88%E5%B9%B6%E6%9C%89%E5%BA%8F%E5%9D%97"><span class="nav-number">1.4.</span> <span class="nav-text">合并有序块</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%B9%8B%E5%89%8D%E7%89%88%E6%9C%AC%E7%9A%842%E8%B7%AF%E5%BD%92%E5%B9%B6-cascade-2-way-merge-sort"><span class="nav-number">1.4.1.</span> <span class="nav-text">之前版本的2路归并 (cascade 2-way merge sort)</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%96%B0%E7%89%88%E6%9C%AC%E7%9A%84k%E8%B7%AF%E5%BD%92%E5%B9%B6"><span class="nav-number">1.4.2.</span> <span class="nav-text">新版本的k路归并</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C"><span class="nav-number">1.5.</span> <span class="nav-text">实验结果</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Zhenwei Liu</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenwei Liu</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>

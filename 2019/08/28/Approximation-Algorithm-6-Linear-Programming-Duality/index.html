@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 8.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"liuzw1998.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Week 6: Linear Programming Duality 本周学习的内容是利用线性规划的对偶来设计近似算法。 Introduction考虑下面一个线性规划问题：$$\begin{aligned}&amp;\min 7x_1 + x_2 + 5x_3 \&amp;x_1-x_2+3x_3 &amp;\geq 10 \ \ &amp;(1)\&amp;5x_1 + 2x_2 - x_3 &amp;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Approximation Algorithm(6)-Linear Programming Duality">
+<meta property="og:url" content="https://liuzw1998.github.io/2019/08/28/Approximation-Algorithm-6-Linear-Programming-Duality/index.html">
+<meta property="og:site_name" content="Zhenwei&#39;s Blog">
+<meta property="og:description" content="Week 6: Linear Programming Duality 本周学习的内容是利用线性规划的对偶来设计近似算法。 Introduction考虑下面一个线性规划问题：$$\begin{aligned}&amp;\min 7x_1 + x_2 + 5x_3 \&amp;x_1-x_2+3x_3 &amp;\geq 10 \ \ &amp;(1)\&amp;5x_1 + 2x_2 - x_3 &amp;">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://liuzw1998.github.io/2019/08/28/Approximation-Algorithm-6-Linear-Programming-Duality/1.png">
+<meta property="og:image" content="https://liuzw1998.github.io/2019/08/28/Approximation-Algorithm-6-Linear-Programming-Duality/2.png">
+<meta property="og:image" content="https://liuzw1998.github.io/2019/08/28/Approximation-Algorithm-6-Linear-Programming-Duality/3.png">
+<meta property="article:published_time" content="2019-08-28T11:01:20.000Z">
+<meta property="article:modified_time" content="2025-11-05T02:41:00.471Z">
+<meta property="article:author" content="Zhenwei Liu">
+<meta property="article:tag" content="Approximation Algorithms">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://liuzw1998.github.io/2019/08/28/Approximation-Algorithm-6-Linear-Programming-Duality/1.png">
+
+<link rel="canonical" href="https://liuzw1998.github.io/2019/08/28/Approximation-Algorithm-6-Linear-Programming-Duality/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      processEscapes: true,
+      processEnvironments: true,
+      tags: 'ams'
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+  };
+</script>
+
+  <title>Approximation Algorithm(6)-Linear Programming Duality | Zhenwei's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zhenwei's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://liuzw1998.github.io/2019/08/28/Approximation-Algorithm-6-Linear-Programming-Duality/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Zhenwei Liu">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zhenwei's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Approximation Algorithm(6)-Linear Programming Duality
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-08-28 11:01:20" itemprop="dateCreated datePublished" datetime="2019-08-28T11:01:20+00:00">2019-08-28</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2025-11-05 02:41:00" itemprop="dateModified" datetime="2025-11-05T02:41:00+00:00">2025-11-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Algorithm/" itemprop="url" rel="index"><span itemprop="name">Algorithm</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Algorithm/Combinatorial-Optimization/" itemprop="url" rel="index"><span itemprop="name">Combinatorial Optimization</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>Week 6: Linear Programming Duality</strong></p>
+<p>本周学习的内容是利用线性规划的对偶来设计近似算法。</p>
+<h4 id="Introduction"><a href="#Introduction" class="headerlink" title="Introduction"></a>Introduction</h4><p>考虑下面一个线性规划问题：<br>$$<br>\begin{aligned}<br>&amp;\min 7x_1 + x_2 + 5x_3 \<br>&amp;x_1-x_2+3x_3 &amp;\geq 10 \ \ &amp;(1)\<br>&amp;5x_1 + 2x_2 - x_3 &amp;\geq 6  &amp;(2) \<br>&amp;x_1, x_2, x_3 &amp;\geq 0 &amp;(3,4,5)<br>\end{aligned}<br>$$<br>$2*(1) + (2)$ 可以得到$7x_1 + 5x_3 \geq 26$。</p>
+<p>因此目标函数$7x_1+x_2+5x_3\geq 7x_1+5x_3 \geq 26$</p>
+<p>从上面的例子受到启发，我们可以通过构造线性规划的约数不等式的凸组合来得到目标函数的下界。</p>
+<p>那么要如何构造凸组合使得这个下界尽可能紧呢？</p>
+<p>考虑凸组合$y_1*(1) + y_2*(2)$:</p>
+<p>$$<br>(y_1+5y_2)x_1 + (-y_1+2y_2)x_2 + (3y_1-y_2)x_3 \geq 10y_1+6y_2<br>$$</p>
+<p>需要满足<br>$$<br>\begin{aligned}<br>&amp;\max 10y_1 + 6y_2 \<br>&amp; y_1+5y_2 &amp;\leq 7 \ \ \ &amp;(1’)\<br>&amp; -y1+2y_2 &amp;\leq 1 &amp;(2’)\<br>&amp; 3y_1 -y_2 &amp; \leq 5 &amp;(3’)\<br>&amp; y_1, y_2 &amp;\geq 0 &amp;(4’,5’)<br>\end{aligned}<br>$$<br>于是又转换成了一个线性规划问题。</p>
+<p>写成矩阵的形式：</p>
+<table>
+<thead>
+<tr>
+<th align="center">Primal</th>
+<th align="center">Dual</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">$$\begin{aligned} \min c^Tx  \ Ax \geq b \x \geq 0 \end{aligned}$$</td>
+<td align="center">$$\begin{aligned} \max b^Ty \ A^Ty \leq c \ y \geq 0 \end{aligned} $$</td>
+</tr>
+<tr>
+<td align="center">上面两个线性规划问题互为对偶，以前学过的对偶问题还有最大流最小割，平面图的对偶等。</td>
+<td align="center"></td>
+</tr>
+</tbody></table>
+<h4 id="Properties-of-LP-Duality"><a href="#Properties-of-LP-Duality" class="headerlink" title="Properties of LP Duality"></a>Properties of LP Duality</h4><p>在上一节的例子中，我们通过构造线性规划的约数不等式的凸组合来得到目标函数的下界，为了使得得到的下界尽可能紧，又转化为一个与原问题对偶的线性规划问题。问题是，通过这样得出的最紧的下界，是不是就是原问题的解呢？</p>
+<h5 id="Weak-Duality-Theorem"><a href="#Weak-Duality-Theorem" class="headerlink" title="Weak Duality Theorem"></a>Weak Duality Theorem</h5><p>从例子也容易知道</p>
+<p>$$<br>\max b^Ty \leq \min c^Tx<br>$$<br>因为 $ \max b^Ty $ 就是我们要求的最紧的$ \min c^Tx$的下界。</p>
+<p>从矩阵的角度也很容易证明：</p>
+<p>$$<br>b^Ty \leq (Ax)^Ty &#x3D; x^TA^Ty \leq x^Tc &#x3D; c^Tx<br>$$</p>
+<h5 id="Strong-Duality-Theorem"><a href="#Strong-Duality-Theorem" class="headerlink" title="Strong Duality Theorem"></a>Strong Duality Theorem</h5><p>$$<br>\max b^Ty &#x3D; \min c^Tx<br>$$</p>
+<p>证明可以从单纯形算法导出，利用单纯形算法最终检验数非负的性质强行构造出一个对偶解和原始解的值一样。可以看单纯形算法的各种资料。</p>
+<h5 id="Complementary-Slackness-Conditions"><a href="#Complementary-Slackness-Conditions" class="headerlink" title="Complementary Slackness Conditions"></a>Complementary Slackness Conditions</h5><p>根据<strong>Strong Duality Theorem</strong>, <strong>Weak Duality Theorem</strong>中$b^Ty \leq (Ax)^Ty &#x3D; x^TA^Ty \leq x^Tc &#x3D; c^Tx$所有不等式等号都应该成立。</p>
+<p>要使得$b^Ty \leq (Ax)^Ty$的等号成立, 必须有$y_i &#x3D; 0$或者$b^T_i &#x3D; (Ax)^T_i$即$b_i &#x3D; \sum_ja_{ij}x_j$</p>
+<p>要使得$x^TA^Ty \leq x^Tc$的等号成立, 必须有$x_i &#x3D; 0$或者$c_i &#x3D; (A^Ty)<em>i$即$c_i &#x3D; \sum_ja</em>{ji}y_i$</p>
+<h4 id="Vertex-Cover-by-LP-Duality"><a href="#Vertex-Cover-by-LP-Duality" class="headerlink" title="Vertex Cover by LP Duality"></a>Vertex Cover by LP Duality</h4><p>下面以顶点覆盖问题为例介绍如何利用LP Duality来设计近似算法。</p>
+<table>
+<thead>
+<tr>
+<th align="center">Primal</th>
+<th align="center">Dual</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">$$\begin{aligned} &amp;\min w_ux_u\ x_u+x_v &amp;\geq 1  \ \forall  (u, v)\in E \ \ x_u &amp;\geq 0 \ \forall u \in V \end{aligned}$$</td>
+<td align="center">$$\begin{aligned}&amp;\max y_e \  \sum_{e: u \in e}y_e &amp;\leq w_u\ \forall u \in V \ y_e &amp;\geq 0  \ \forall e \in E\end{aligned}$$</td>
+</tr>
+</tbody></table>
+<p>Dual的组合意义：</p>
+<p>相当于要给每条边加”能量”，每个点的能量是与它关联的边的能量之和，每个点限制$w_u$,表示这个点的能量不能超过$ w_u $. </p>
+<h5 id="Algorithm"><a href="#Algorithm" class="headerlink" title="Algorithm"></a>Algorithm</h5><p>令 $x:&#x3D; (0, 0 \cdots, 0)^T, y :&#x3D; (0, 0, \cdots, 0)^T$</p>
+<p>重复以下过程:</p>
+<p>选取某条边 $e &#x3D; (u, v)$ 满足 $e_u + e_v \lt 1$</p>
+<p>将$y_e$增大, 直到$u$或者$v$的”能量”到达瓶颈，$\sum_{e’: u\in e’}y_{e’} &#x3D; w_u$或者$\sum_{e’:v \in e’} y_{e’} &#x3D; w_v$</p>
+<p>将先到达瓶颈的那个端点的x置为1，同时到达的话任选一个。</p>
+<h5 id="Correctness"><a href="#Correctness" class="headerlink" title="Correctness"></a>Correctness</h5><p>一开始$x$不是可行解，$y$是可行解，但代价太大。</p>
+<p>每次迭代都会使得$x$更加可行，因为至少会让一条未覆盖的边被覆盖(让Primal一个未被满足的限制被满足)。最终$x$是可行解。而且每次迭代不会破坏Dual的任意一个限制，只会让$y$的代价减少，因此最终$y$也是可行解。</p>
+<h5 id="Approximation-Ratio"><a href="#Approximation-Ratio" class="headerlink" title="Approximation Ratio"></a>Approximation Ratio</h5><p>先发现一些小性质：</p>
+<p>算法最终返回的$x, y$满足:</p>
+<p>$x_u &#x3D; 0$或$x_u \neq 0, \sum_{e: u \in e}{y_e} &#x3D; w_u$.</p>
+<p>$y_e &#x3D; 0$或$y_e \neq 0, x_u + x_v &#x3D; 1,2$($e &#x3D; (u, v)$).</p>
+<p>对比<strong>Complementary Slackness Conditions</strong>，只不过是$x_u+x_v &#x3D; 1$的条件变成了$x_u + x_v &#x3D; 1, 2$, 放宽了2倍，可以根据这个2倍入手来证明近似度。</p>
+<p><strong>Proof</strong>:<br>$$<br>\begin{aligned}<br>&amp;\sum_u{w_ux_u} &#x3D; \sum_{u:x_u \neq 0}{x_u}\sum_{e:u \in e}y_e \ \<br>&amp;&#x3D; \sum_{u:x_u \neq 0}{x_u}\sum_{e:u \in e}y_e \<br>&amp;&#x3D; \sum_{u}{x_u}\sum_{e:u \in e}y_e \<br>&amp;&#x3D; \sum_{e:e&#x3D;(u,v)}y_e(x_u+x_v) \<br>&amp;\leq 2\sum_{e}y_e \<br>&amp;\leq 2 OPT_{Dual} \<br>&amp;&#x3D; 2 OPT_{Primal} \<br>&amp;\leq 2 OPT_{Primal(int)}<br>\end{aligned}<br>$$<br>因此近似度是2.</p>
+<h4 id="Exercise"><a href="#Exercise" class="headerlink" title="Exercise"></a>Exercise</h4><h5 id="Problem"><a href="#Problem" class="headerlink" title="Problem"></a>Problem</h5><img src="/2019/08/28/Approximation-Algorithm-6-Linear-Programming-Duality/1.png" class="">
+<img src="/2019/08/28/Approximation-Algorithm-6-Linear-Programming-Duality/2.png" class="">
+<img src="/2019/08/28/Approximation-Algorithm-6-Linear-Programming-Duality/3.png" class="">
+
+<h5 id="My-Solution"><a href="#My-Solution" class="headerlink" title="My Solution"></a>My Solution</h5><p><strong>Question 1</strong></p>
+<p>$\max \sum\limits_{j&#x3D;1}^{n}{y_i}$</p>
+<p>$\forall i \in {1,\cdots,m}, \sum_{j:e_j \in S_i}{y_j} \leq w_i$</p>
+<p>$\forall i \in {1,\cdots,n}, y_i \geq 0$</p>
+<p><strong>Question 2</strong></p>
+<p>1</p>
+<p><strong>Question 3</strong></p>
+<p>The algorithm terminates in at most $n$ iterations. When it terminates, every element is covered, so it’s a feasible solution.</p>
+<p><strong>Question 4</strong></p>
+<p>$OPT \geq val(x^{*}) &#x3D; val(y^*)$</p>
+<p><strong>Question 5</strong></p>
+<p>Initially, $y &#x3D; 0$ and $y$ is feasible.</p>
+<p>In each iteration, the algorithm only increases $y_i$ until some constraint is reached, which means we will never violate any constraint, so  the final solution $y$ is also feasible.</p>
+<p><strong>Question 6</strong></p>
+<p>$val(y) \leq val(y^*) \leq OPT$</p>
+<p><strong>Question 7</strong></p>
+<p>$\sum_{i:e_i\in S_j}{y_i} &#x3D; w_j$</p>
+<p><strong>Question 8</strong></p>
+<p>$\sum_{j\in I}{w_j} &#x3D; \sum_{j \in I}{\sum_{i:e_i\in S_j}{y_i}}$</p>
+<p><strong>Question 9</strong></p>
+<p>$\sum_{j\in I}{w_j} &#x3D; \sum_{j \in I}{\sum_{i:e_i\in S_j}{y_i}} &#x3D; \sum_iy_i|{j : e_i \in S_j}| \leq \sum_ify_i &#x3D; f\cdot val(y)$</p>
+<p><strong>Question 10</strong></p>
+<p>$\sum_{j\in I}{w_j} \leq f \cdot val(y) \leq f \cdot OPT$</p>
+<p>Thus the approximation ratio of the algorithm is $f$.</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Approximation-Algorithms/" rel="tag"># Approximation Algorithms</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/08/13/Approximation-Algorithm-5-The-MultiwayCut-Problem/" rel="prev" title="Approximation Algorithm(5)-The MultiwayCut Problem">
+      <i class="fa fa-chevron-left"></i> Approximation Algorithm(5)-The MultiwayCut Problem
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/09/05/Approximation-Algorithm-7-The-Steiner-Forest-Problem/" rel="next" title="Approximation Algorithm(7)-The Steiner Forest Problem">
+      Approximation Algorithm(7)-The Steiner Forest Problem <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#Introduction"><span class="nav-number">1.</span> <span class="nav-text">Introduction</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Properties-of-LP-Duality"><span class="nav-number">2.</span> <span class="nav-text">Properties of LP Duality</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Weak-Duality-Theorem"><span class="nav-number">2.1.</span> <span class="nav-text">Weak Duality Theorem</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Strong-Duality-Theorem"><span class="nav-number">2.2.</span> <span class="nav-text">Strong Duality Theorem</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Complementary-Slackness-Conditions"><span class="nav-number">2.3.</span> <span class="nav-text">Complementary Slackness Conditions</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Vertex-Cover-by-LP-Duality"><span class="nav-number">3.</span> <span class="nav-text">Vertex Cover by LP Duality</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Algorithm"><span class="nav-number">3.1.</span> <span class="nav-text">Algorithm</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Correctness"><span class="nav-number">3.2.</span> <span class="nav-text">Correctness</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Approximation-Ratio"><span class="nav-number">3.3.</span> <span class="nav-text">Approximation Ratio</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Exercise"><span class="nav-number">4.</span> <span class="nav-text">Exercise</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Problem"><span class="nav-number">4.1.</span> <span class="nav-text">Problem</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#My-Solution"><span class="nav-number">4.2.</span> <span class="nav-text">My Solution</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Zhenwei Liu</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zhenwei Liu</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>
